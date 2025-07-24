@@ -1,1 +1,2 @@
-wx_name='aaatest'
+#comments....
+wx_name=aaatest
