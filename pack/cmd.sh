@@ -1,0 +1,1 @@
+./dist/manage/manage cmd --testit

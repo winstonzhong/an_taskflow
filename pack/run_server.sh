@@ -1,0 +1,1 @@
+./dist/manage/manage runserver 0.0.0.0:8000 --noreload

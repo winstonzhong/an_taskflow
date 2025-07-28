@@ -19,3 +19,5 @@ db.sqlite3-journal
 */build/
 */dist/
 */venv/
+*/.venv/
+*/.venv_win/
