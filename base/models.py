@@ -35,7 +35,8 @@ class 定时任务(抽象定时任务):
         if self.网络任务:
             if self.id not in self.缓存:
                 self.缓存[self.id] = JobFilePersistence.from_job_name(
-                    self.网络任务
+                    self.网络任务,
+                    'xn_c3nOp0ZTq'
                 ).read()
             return self.缓存.get(self.id)
 
@@ -54,4 +55,6 @@ class 定时任务(抽象定时任务):
         return 基本任务列表(self.远程执行流程数据, self.device_pointed)
 
     def 加载配置执行(self):
+        b = self.远程流程
+        print(b, b.jobs)
         return self.远程流程.执行任务()

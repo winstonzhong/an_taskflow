@@ -25,10 +25,12 @@ sys.path.append(str(BASE_DIR.parent / "caidao"))
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DB_DIR = BASE_DIR.parent / 'db' / BASE_DIR.name
+DB_DIR = BASE_DIR 
 
-if not os.path.lexists(DB_DIR):
-    os.makedirs(DB_DIR)
+# DB_DIR = BASE_DIR.parent / 'db' / BASE_DIR.name
+
+# if not os.path.lexists(DB_DIR):
+#     os.makedirs(DB_DIR)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -52,7 +54,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'base',
-    'weixin',
+    # 'weixin',
 ]
 
 MIDDLEWARE = [
