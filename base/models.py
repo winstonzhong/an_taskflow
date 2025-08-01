@@ -6,15 +6,13 @@ from caidao_tools.django.abstract import (
 
 from helper_jfp import JobFilePersistence
 
-# import helper_hash
-# import tool_env
-# from adb_tools.helper_adb import BaseAdb
-# import tool_wx
-
-# import config_reader
-# from tool_foods import transform_food_data
 from adb_tools.tool_xpath import 基本任务列表
 
+import json
+
+import datetime
+
+import tool_time
 
 # Create your models here.
 class 定时任务(抽象定时任务):
@@ -58,3 +56,22 @@ class 定时任务(抽象定时任务):
         b = self.远程流程
         print(b, b.jobs)
         return self.远程流程.执行任务()
+    
+    @classmethod
+    def 导入定时任务(cls, fpath='/home/yka-003/workspace/my_robot/main_robot.json'):
+        print(cls.objects.filter().delete())
+        with open(fpath, 'r', encoding='utf-8') as fp:
+            data_list = json.load(fp)
+        for item in data_list:
+            item.pop('id')
+            # item.pop('update_time')
+
+            if item.get('update_time'):
+                dt = datetime.datetime.strptime(item['update_time'], '%Y-%m-%d %H:%M:%S')
+                # timezone.make_aware(dt, timezone=shanghai_tz)
+                item['update_time'] = tool_time.TIME_ZONE_SHANGHAI.localize(dt)
+            if item.get('设定时间'):
+                dt = datetime.datetime.strptime(item['设定时间'], '%Y-%m-%d %H:%M:%S')
+                item['设定时间'] = tool_time.TIME_ZONE_SHANGHAI.localize(dt)
+
+            cls.objects.create(**item)
