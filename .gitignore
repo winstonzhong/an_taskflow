@@ -1,6 +1,4 @@
-*.sqlite3
 *.pyc
-*.db
 *.csv
 *.log
 db.sqlite3-journal
@@ -19,5 +17,4 @@ db.sqlite3-journal
 */build/
 */dist/
 */venv/
-*/.venv/
-*/.venv_win/
+

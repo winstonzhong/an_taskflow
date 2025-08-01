@@ -63,9 +63,9 @@ def download_file(url, suffix=".mp3"):
 class Command(BaseCommand):
     def add_arguments(self, parser):
         # parser.add_argument("--wxrobot", action="store_true", default=False)
-        # parser.add_argument(
-        #     "--ip_port", nargs="?", default="192.168.0.146:7080", type=str
-        # )
+        parser.add_argument(
+            "--ip_port", nargs="?", default="192.168.0.146:7080", type=str
+        )
         # parser.add_argument("--usb", nargs="?", default=None, type=str)
         # parser.add_argument("--fpath", nargs="?", default=None, type=str)
         parser.add_argument("--testit", action="store_true", default=False)
@@ -74,14 +74,13 @@ class Command(BaseCommand):
         # parser.add_argument(
         #     "--state", nargs="?", default="状态_等待微信新消息", type=str
         # )
-        # parser.add_argument("--step", action="store_true", default=False)
+        parser.add_argument("--step", action="store_true", default=False)
         # parser.add_argument("--debug", action="store_true", default=False)
 
         # parser.add_argument("--发送", action="store_true", default=False)
         # parser.add_argument("--接收", action="store_true", default=False)
 
-        # # parser.add_argument("--运行定时任务", action="store_true", default=False)
-        # parser.add_argument("--运行定时任务", nargs="?", default=None, type=str)
+        parser.add_argument("--运行定时任务", nargs="?", default=None, type=str)
 
         # parser.add_argument("--测试加好友", action="store_true", default=False)
         # parser.add_argument("--exclude", nargs="?", default=None, type=str)
@@ -122,3 +121,27 @@ class Command(BaseCommand):
             cfg = config_reader.read_config_from_file("config.txt")
             print(cfg)
             return
+
+
+        if options.get("运行定时任务"):
+            # 基础机器.设置默认选中设备(options.get("ip_port"))
+
+            if tool_env.is_number(options.get("运行定时任务")):
+                kwargs = {"id": options.get("运行定时任务")}
+            else:
+                kwargs = {"group_name": options.get("运行定时任务"),
+                          "_exclude":options.get("exclude") or "",
+                          }
+            q = 定时任务.得到所有待执行的任务(**kwargs)
+            assert q.count(), "没有找到定时任务"
+            print(f"开始执行以下任务：{q.count()}")
+            for i, x in enumerate(q):
+                print(i, x)
+
+            if options.get("list"):
+                return
+            定时任务.执行所有定时任务(
+                单步=options.get("step"),
+                每轮间隔秒数=options.get("span"),
+                **kwargs,
+            )
