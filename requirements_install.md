@@ -82,10 +82,6 @@ pkg install opencv-python
 
 ```shell script
 
-
-
-
-
 # 参数说明：
 
 # -DBUILD_ANDROID_EXAMPLES=OFF：禁用 Android 示例构建（解决当前报错的核心）
@@ -121,4 +117,17 @@ export CMAKE_ARGS="-D__ANDROID__=OFF -DANDROID=OFF"
 pip install --no-build-isolation --config-settings=cmake.define.ANDROID=OFF --config-settings=cmake.define.__ANDROID__=OFF opencv-python==4.10.0.82
 ```
 
+## 常用命令
+### 系统备份
+```shell script
+termux-setup-storage
+cd ..
+tar -zcpvf ~/storage/downloads/termux-backup.tar.gz home usr
+```
 
+### 新机器拷贝环境
+```shell script
+termux-setup-storage
+cd ..
+tar -zxpf ~/storage/downloads/termux-backup.tar.gz --recursive-unlink
+```
