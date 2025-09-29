@@ -12,7 +12,10 @@ import json
 
 import datetime
 
+import tool_date
 import tool_time
+
+from base.management.commands.tasks import TASKS
 
 # Create your models here.
 class 定时任务(抽象定时任务):
@@ -53,8 +56,8 @@ class 定时任务(抽象定时任务):
         return 基本任务列表(self.远程执行流程数据, self.device_pointed)
 
     def 加载配置执行(self):
-        b = self.远程流程
-        print(b, b.jobs)
+        # b = self.远程流程
+        # print(b, b.jobs)
         return self.远程流程.执行任务()
     
     @classmethod
@@ -75,3 +78,16 @@ class 定时任务(抽象定时任务):
                 item['设定时间'] = tool_time.TIME_ZONE_SHANGHAI.localize(dt)
 
             cls.objects.create(**item)
+
+    @classmethod
+    def 从配置表导入定时任务(cls, 强制覆盖=False):
+        for x in TASKS:
+            x['设定时间'] = tool_date.北京时间字符串转UTC(x.get('设定时间'))
+            # print(x)
+            name = x.get("名称")
+            qs = cls.objects.filter(名称=name)
+            if qs.exists():
+                if 强制覆盖:
+                    qs.update(**x)
+            else:
+                cls.objects.create(**x)

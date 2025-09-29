@@ -10,11 +10,10 @@ from django.core.management.base import BaseCommand
 
 
 # from my_robot.base.models import 手机设备
-from base.models import  定时任务
+from base.models import 定时任务
 
 import tool_env
 from adb_tools.helper_adb import BaseAdb
-
 
 
 import requests
@@ -69,7 +68,9 @@ class Command(BaseCommand):
         # parser.add_argument("--usb", nargs="?", default=None, type=str)
         # parser.add_argument("--fpath", nargs="?", default=None, type=str)
         parser.add_argument("--testit", action="store_true", default=False)
-        # parser.add_argument("--span", nargs="?", default=0, type=int)
+
+        parser.add_argument("--span", nargs="?", default=1, type=int)
+
         # # parser.add_argument("--group_name", nargs="?", default="主机器人", type=str)
         # parser.add_argument(
         #     "--state", nargs="?", default="状态_等待微信新消息", type=str
@@ -78,18 +79,16 @@ class Command(BaseCommand):
         # parser.add_argument("--debug", action="store_true", default=False)
 
         # parser.add_argument("--发送", action="store_true", default=False)
-        # parser.add_argument("--接收", action="store_true", default=False)
+        parser.add_argument("--强制覆盖", action="store_true", default=False)
 
         parser.add_argument("--运行定时任务", nargs="?", default=None, type=str)
 
         # parser.add_argument("--测试加好友", action="store_true", default=False)
         # parser.add_argument("--exclude", nargs="?", default=None, type=str)
         # parser.add_argument("--list", action="store_true", default=False)
-        
 
     def handle(self, *args, **options):
         定时任务.IP_PORT = options.get("ip_port")
-        
         if options.get("usb"):
             data_list = BaseAdb.get_devcie_usb()
             if data_list:
@@ -115,23 +114,23 @@ class Command(BaseCommand):
             usb_device = BaseAdb.first_device_usb()
             adb = BaseAdb(usb_device)
             print(adb)
-            package = 'com.tencent.mm'
-            activity = '.ui.LauncherUI'
+            package = "com.tencent.mm"
+            activity = ".ui.LauncherUI"
             adb.open_certain_app(package, activity)
             cfg = config_reader.read_config_from_file("config.txt")
             print(cfg)
             return
 
-
         if options.get("运行定时任务"):
-            # 基础机器.设置默认选中设备(options.get("ip_port"))
+            定时任务.从配置表导入定时任务(强制覆盖=options.get("强制覆盖"))
 
             if tool_env.is_number(options.get("运行定时任务")):
                 kwargs = {"id": options.get("运行定时任务")}
             else:
-                kwargs = {"group_name": options.get("运行定时任务"),
-                          "_exclude":options.get("exclude") or "",
-                          }
+                kwargs = {
+                    "group_name": options.get("运行定时任务"),
+                    "_exclude": options.get("exclude") or "",
+                }
             q = 定时任务.得到所有待执行的任务(**kwargs)
             assert q.count(), "没有找到定时任务"
             print(f"开始执行以下任务：{q.count()}")
@@ -140,8 +139,13 @@ class Command(BaseCommand):
 
             if options.get("list"):
                 return
-            定时任务.执行所有定时任务(
-                单步=options.get("step"),
-                每轮间隔秒数=options.get("span"),
-                **kwargs,
-            )
+
+            try:
+                定时任务.执行所有定时任务(
+                    单步=options.get("step"),
+                    每轮间隔秒数=options.get("span"),
+                    **kwargs,
+                )
+            except KeyboardInterrupt:
+                pass
+            return
