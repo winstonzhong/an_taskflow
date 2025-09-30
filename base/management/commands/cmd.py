@@ -81,6 +81,8 @@ class Command(BaseCommand):
         # parser.add_argument("--发送", action="store_true", default=False)
         parser.add_argument("--强制覆盖", action="store_true", default=False)
 
+        parser.add_argument("--强制第一次运行", action="store_true", default=False)
+
         parser.add_argument("--运行定时任务", nargs="?", default=None, type=str)
 
         # parser.add_argument("--测试加好友", action="store_true", default=False)
@@ -131,8 +133,12 @@ class Command(BaseCommand):
                     "group_name": options.get("运行定时任务"),
                     "_exclude": options.get("exclude") or "",
                 }
-            q = 定时任务.得到所有待执行的任务(**kwargs)
+            q = 定时任务.得到所有待执行的任务(_without_updated=1, **kwargs)
             assert q.count(), "没有找到定时任务"
+
+            if options.get("强制第一次运行"):
+                q.update(update_time="2000-01-01")
+
             print(f"开始执行以下任务：{q.count()}")
             for i, x in enumerate(q):
                 print(i, x)
