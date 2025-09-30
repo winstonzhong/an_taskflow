@@ -83,7 +83,7 @@ class 定时任务(抽象定时任务):
     def 从配置表导入定时任务(cls, 强制覆盖=False):
         for x in TASKS:
             x['设定时间'] = tool_date.北京时间字符串转UTC(x.get('设定时间'))
-            # print(x)
+            print(x)
             name = x.get("名称")
             qs = cls.objects.filter(名称=name)
             if qs.exists():
