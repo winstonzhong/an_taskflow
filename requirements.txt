@@ -13,3 +13,4 @@ lxml==6.0.0
 progress==1.6
 cached_property==1.5.2
 uiautomator2==2.16.25
+redis==5.0.4
