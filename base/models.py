@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from caidao_tools.django.abstract import (
     抽象定时任务,
@@ -91,3 +92,17 @@ class 定时任务(抽象定时任务):
                     qs.update(**x)
             else:
                 cls.objects.create(**x)
+
+    def 更新任务间隔时间(self):
+        if self.名称 != '微信_微信运动同步':
+            return
+        beijing_now = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+
+        if 8 <= beijing_now.hour < 23:
+            定时表达式 = 'every 30 minutes'
+        else:
+            定时表达式 = 'every 10 minutes'
+
+        self.定时表达式 = 定时表达式
+        self.间隔秒 = tool_time.convert_time_description_to_seconds(定时表达式)
+        self.save()
