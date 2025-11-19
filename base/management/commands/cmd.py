@@ -142,7 +142,7 @@ class Command(BaseCommand):
             print(f"开始执行以下任务：{q.count()}")
             for i, x in enumerate(q):
                 print(i, x)
-                x.更新任务间隔时间()
+                # x.更新任务间隔时间()
 
             if options.get("list"):
                 return

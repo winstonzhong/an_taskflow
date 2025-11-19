@@ -18,6 +18,7 @@ import tool_time
 
 from base.management.commands.tasks import TASKS
 
+
 # Create your models here.
 class 定时任务(抽象定时任务):
     设备相关 = models.BooleanField(default=True)
@@ -37,8 +38,7 @@ class 定时任务(抽象定时任务):
         if self.网络任务:
             if self.id not in self.缓存:
                 self.缓存[self.id] = JobFilePersistence.from_job_name(
-                    self.网络任务,
-                    'xn_c3nOp0ZTq'
+                    self.网络任务, "xn_c3nOp0ZTq"
                 ).read()
             return self.缓存.get(self.id)
 
@@ -60,30 +60,32 @@ class 定时任务(抽象定时任务):
         # b = self.远程流程
         # print(b, b.jobs)
         return self.远程流程.执行任务()
-    
+
     @classmethod
-    def 导入定时任务(cls, fpath='/home/yka-003/workspace/my_robot/main_robot.json'):
+    def 导入定时任务(cls, fpath="/home/yka-003/workspace/my_robot/main_robot.json"):
         print(cls.objects.filter().delete())
-        with open(fpath, 'r', encoding='utf-8') as fp:
+        with open(fpath, "r", encoding="utf-8") as fp:
             data_list = json.load(fp)
         for item in data_list:
-            item.pop('id')
+            item.pop("id")
             # item.pop('update_time')
 
-            if item.get('update_time'):
-                dt = datetime.datetime.strptime(item['update_time'], '%Y-%m-%d %H:%M:%S')
+            if item.get("update_time"):
+                dt = datetime.datetime.strptime(
+                    item["update_time"], "%Y-%m-%d %H:%M:%S"
+                )
                 # timezone.make_aware(dt, timezone=shanghai_tz)
-                item['update_time'] = tool_time.TIME_ZONE_SHANGHAI.localize(dt)
-            if item.get('设定时间'):
-                dt = datetime.datetime.strptime(item['设定时间'], '%Y-%m-%d %H:%M:%S')
-                item['设定时间'] = tool_time.TIME_ZONE_SHANGHAI.localize(dt)
+                item["update_time"] = tool_time.TIME_ZONE_SHANGHAI.localize(dt)
+            if item.get("设定时间"):
+                dt = datetime.datetime.strptime(item["设定时间"], "%Y-%m-%d %H:%M:%S")
+                item["设定时间"] = tool_time.TIME_ZONE_SHANGHAI.localize(dt)
 
             cls.objects.create(**item)
 
     @classmethod
     def 从配置表导入定时任务(cls, 强制覆盖=False):
         for x in TASKS:
-            x['设定时间'] = tool_date.北京时间字符串转UTC(x.get('设定时间'))
+            x["设定时间"] = tool_date.北京时间字符串转UTC(x.get("设定时间"))
             # print(x)
             name = x.get("名称")
             qs = cls.objects.filter(名称=name)
@@ -93,16 +95,24 @@ class 定时任务(抽象定时任务):
             else:
                 cls.objects.create(**x)
 
-    def 更新任务间隔时间(self):
-        if self.名称 != '微信_微信运动同步':
-            return
-        beijing_now = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+    # def 更新任务间隔时间(self):
+    #     if self.名称 != "微信_微信运动同步":
+    #         return
+    #     beijing_now = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
 
-        if 8 <= beijing_now.hour < 23:
-            定时表达式 = 'every 30 minutes'
+    #     if 8 <= beijing_now.hour < 23:
+    #         定时表达式 = "every 30 minutes"
+    #     else:
+    #         定时表达式 = "every 10 minutes"
+
+    #     self.定时表达式 = 定时表达式
+    #     self.间隔秒 = tool_time.convert_time_description_to_seconds(定时表达式)
+    #     self.save()
+
+    @classmethod
+    def 动态初始化(cls, **kwargs):
+        if tool_date.是否在时间段内("23:00:00", "08:00:00"):
+            cls.objects.filter(名称__in=["微信_微信运动同步"]).exclude(间隔秒=60 * 10).update(间隔秒=60 * 10)
         else:
-            定时表达式 = 'every 10 minutes'
+            cls.objects.filter(名称__in=["微信_微信运动同步"]).exclude(间隔秒=60 * 30).update(间隔秒=60 * 30)
 
-        self.定时表达式 = 定时表达式
-        self.间隔秒 = tool_time.convert_time_description_to_seconds(定时表达式)
-        self.save()
