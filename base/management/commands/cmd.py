@@ -133,6 +133,7 @@ class Command(BaseCommand):
                     "group_name": options.get("运行定时任务"),
                     "_exclude": options.get("exclude") or "",
                 }
+            print(kwargs)
             q = 定时任务.得到所有待执行的任务(_without_updated=1, **kwargs)
             assert q.count(), "没有找到定时任务"
 
