@@ -23,6 +23,8 @@ from base.management.commands.tasks import TASKS
 class 定时任务(抽象定时任务):
     设备相关 = models.BooleanField(default=True)
     网络任务 = models.CharField(null=True, blank=True, max_length=255)
+    数据 = models.JSONField(default=dict, blank=True, null=True)
+    队列名称 = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
         indexes = [
@@ -57,8 +59,6 @@ class 定时任务(抽象定时任务):
         return 基本任务列表(self.远程执行流程数据, self.device_pointed)
 
     def 加载配置执行(self):
-        # b = self.远程流程
-        # print(b, b.jobs)
         return self.远程流程.执行任务()
 
     @classmethod
