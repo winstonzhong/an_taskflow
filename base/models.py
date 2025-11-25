@@ -18,11 +18,15 @@ import tool_time
 
 from base.management.commands.tasks import TASKS
 
+from tool_enc import StrSecret
+
 
 # Create your models here.
 class 定时任务(抽象定时任务):
     设备相关 = models.BooleanField(default=True)
     网络任务 = models.CharField(null=True, blank=True, max_length=255)
+    数据 = models.JSONField(default=dict, blank=True, null=True)
+    队列名称 = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
         indexes = [
@@ -33,12 +37,20 @@ class 定时任务(抽象定时任务):
 
     IP_PORT = None
 
+    TOKEN = (
+        StrSecret(b"QPvcOCN78U0vb9f7z-vOz-n3V5eiKzbhyUYSLogyS9o=")
+        .decrypt_from_base64(
+            "Z0FBQUFBQm9VU2JNTy02U1hUOXBRUnItZlhJU1JHUVZPVEpWcUxaS0hSWjJRYlpwVzVqamt3NnkwY3dfMUVjd3lNQ1gxR0hkSlNDOUJnbF9XYTZfSkI4UU1sQmNRa0VoS0lkb0poRm90LVlXUFBYSjJtRnM3Z3JzQ0thVXdvdVlxTFNVZW8xYzNLWEo="
+        )
+        .decode()
+    )
+
     @property
     def 远程执行流程数据(self):
         if self.网络任务:
             if self.id not in self.缓存:
                 self.缓存[self.id] = JobFilePersistence.from_job_name(
-                    self.网络任务, "xn_c3nOp0ZTq"
+                    self.网络任务, self.TOKEN
                 ).read()
             return self.缓存.get(self.id)
 
@@ -57,8 +69,6 @@ class 定时任务(抽象定时任务):
         return 基本任务列表(self.远程执行流程数据, self.device_pointed)
 
     def 加载配置执行(self):
-        # b = self.远程流程
-        # print(b, b.jobs)
         return self.远程流程.执行任务()
 
     @classmethod
@@ -101,7 +111,10 @@ class 定时任务(抽象定时任务):
     @classmethod
     def 动态初始化(cls, **kwargs):
         if tool_date.是否在时间段内("23:00:00", "08:00:00"):
-            cls.objects.filter(名称__in=["微信_微信运动同步"]).exclude(间隔秒=60 * 10).update(间隔秒=60 * 10)
+            cls.objects.filter(名称__in=["微信_微信运动同步"]).exclude(
+                间隔秒=60 * 10
+            ).update(间隔秒=60 * 10)
         else:
-            cls.objects.filter(名称__in=["微信_微信运动同步"]).exclude(间隔秒=60 * 30).update(间隔秒=60 * 30)
-
+            cls.objects.filter(名称__in=["微信_微信运动同步"]).exclude(
+                间隔秒=60 * 30
+            ).update(间隔秒=60 * 30)

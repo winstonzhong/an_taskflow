@@ -34,6 +34,7 @@ class 定时任务Admin(抽象定时任务Admin):
     list_display = [
         "id",
         "group_name",
+        "队列名称",
         "优先级",
         "名称",
         "执行函数",
@@ -49,7 +50,7 @@ class 定时任务Admin(抽象定时任务Admin):
 
     list_filter = ["group_name","激活"]
     
-    list_editable = ('优先级',)
+    list_editable = ('优先级',"队列名称")
 
     actions = ("clone_task", "反转输出调试信息", "切换激活状态")
 

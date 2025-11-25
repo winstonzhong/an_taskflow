@@ -41,6 +41,7 @@ def upload_file(content, fname, project_name="robot"):
     form_data = {"file": (fname, content)}
     data = {"project": project_name}
     data = requests.post(url, data=data, files=form_data).json()
+    print(data)
     return "https://file.j1.sale" + data["data"]["url"]
 
 
