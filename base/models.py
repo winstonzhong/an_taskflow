@@ -27,6 +27,7 @@ class 定时任务(抽象定时任务):
     网络任务 = models.CharField(null=True, blank=True, max_length=255)
     数据 = models.JSONField(default=dict, blank=True, null=True)
     队列名称 = models.CharField(max_length=50, null=True, blank=True)
+    
 
     class Meta:
         indexes = [
@@ -66,7 +67,7 @@ class 定时任务(抽象定时任务):
 
     @property
     def 远程流程(self):
-        return 基本任务列表(self.远程执行流程数据, self.device_pointed)
+        return 基本任务列表(self.远程执行流程数据, self.device_pointed, 持久对象=self)
 
     def 加载配置执行(self):
         return self.远程流程.执行任务()
