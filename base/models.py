@@ -27,7 +27,6 @@ class 定时任务(抽象定时任务):
     网络任务 = models.CharField(null=True, blank=True, max_length=255)
     数据 = models.JSONField(default=dict, blank=True, null=True)
     队列名称 = models.CharField(max_length=50, null=True, blank=True)
-    
 
     class Meta:
         indexes = [
@@ -45,6 +44,19 @@ class 定时任务(抽象定时任务):
         )
         .decode()
     )
+
+    @classmethod
+    def 从网络加载数据(cls, url):
+        name = url.rsplit("/", maxsplit=1)[-1].rsplit(".", maxsplit=1)[0]
+        data = JobFilePersistence.from_job_name(name, cls.TOKEN).read()
+        return data
+
+    @classmethod
+    def 导入网络定时任务(cls, url):
+        for data in cls.从网络加载数据(url):
+            data = data.get("meta_flow")
+            cls.objects.update_or_create(名称=data.get("名称"), defaults=data)
+
 
     @property
     def 远程执行流程数据(self):
@@ -72,26 +84,26 @@ class 定时任务(抽象定时任务):
     def 加载配置执行(self):
         return self.远程流程.执行任务()
 
-    @classmethod
-    def 导入定时任务(cls, fpath="/home/yka-003/workspace/my_robot/main_robot.json"):
-        print(cls.objects.filter().delete())
-        with open(fpath, "r", encoding="utf-8") as fp:
-            data_list = json.load(fp)
-        for item in data_list:
-            item.pop("id")
-            # item.pop('update_time')
+    # @classmethod
+    # def 导入定时任务(cls, fpath="/home/yka-003/workspace/my_robot/main_robot.json"):
+    #     print(cls.objects.filter().delete())
+    #     with open(fpath, "r", encoding="utf-8") as fp:
+    #         data_list = json.load(fp)
+    #     for item in data_list:
+    #         item.pop("id")
+    #         # item.pop('update_time')
 
-            if item.get("update_time"):
-                dt = datetime.datetime.strptime(
-                    item["update_time"], "%Y-%m-%d %H:%M:%S"
-                )
-                # timezone.make_aware(dt, timezone=shanghai_tz)
-                item["update_time"] = tool_time.TIME_ZONE_SHANGHAI.localize(dt)
-            if item.get("设定时间"):
-                dt = datetime.datetime.strptime(item["设定时间"], "%Y-%m-%d %H:%M:%S")
-                item["设定时间"] = tool_time.TIME_ZONE_SHANGHAI.localize(dt)
+    #         if item.get("update_time"):
+    #             dt = datetime.datetime.strptime(
+    #                 item["update_time"], "%Y-%m-%d %H:%M:%S"
+    #             )
+    #             # timezone.make_aware(dt, timezone=shanghai_tz)
+    #             item["update_time"] = tool_time.TIME_ZONE_SHANGHAI.localize(dt)
+    #         if item.get("设定时间"):
+    #             dt = datetime.datetime.strptime(item["设定时间"], "%Y-%m-%d %H:%M:%S")
+    #             item["设定时间"] = tool_time.TIME_ZONE_SHANGHAI.localize(dt)
 
-            cls.objects.create(**item)
+    #         cls.objects.create(**item)
 
     @classmethod
     def 从配置表导入定时任务(cls, 强制覆盖=False):
