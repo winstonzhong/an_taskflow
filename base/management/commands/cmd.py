@@ -133,7 +133,7 @@ class Command(BaseCommand):
 
         if options.get("导入网络任务"):
             url = options.get("导入网络任务")
-            print(定时任务.导入网络定时任务(url))
+            定时任务.导入网络定时任务(url)
 
         if options.get("删除所有任务"):
             print(定时任务.objects.all().delete())

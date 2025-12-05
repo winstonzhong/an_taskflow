@@ -55,6 +55,9 @@ class 定时任务(抽象定时任务):
     def 导入网络定时任务(cls, url):
         for data in cls.从网络加载数据(url):
             data = data.get("meta_flow")
+            data['设定时间'] = tool_date.北京时间字符串转UTC(data.get("设定时间"))
+            data["begin_time"] = tool_date.北京时间字符串转UTC(data.get("begin_time"))
+            data["end_time"] = tool_date.北京时间字符串转UTC(data.get("end_time"))
             cls.objects.update_or_create(名称=data.get("名称"), defaults=data)
 
 
