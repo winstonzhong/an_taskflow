@@ -81,16 +81,15 @@ class Command(BaseCommand):
 
         # parser.add_argument("--发送", action="store_true", default=False)
         # parser.add_argument("--强制覆盖", action="store_true", default=False)
-        
+
         parser.add_argument("--删除所有任务", action="store_true", default=False)
 
         parser.add_argument("--强制第一次运行", action="store_true", default=False)
 
         parser.add_argument("--运行定时任务", nargs="?", default=None, type=str)
-        
-        
+
         parser.add_argument("--导入网络任务", nargs="?", default=None, type=str)
-        
+
         # https://file.j1.sale/api/file/jobs/49_抖音_同步寻找目标视频并评论2.json
 
         # parser.add_argument("--测试加好友", action="store_true", default=False)
