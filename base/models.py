@@ -20,7 +20,9 @@ from base.management.commands.tasks import TASKS
 
 from tool_enc import StrSecret
 
+import time
 
+import pandas
 # Create your models here.
 class 定时任务(抽象定时任务):
     设备相关 = models.BooleanField(default=True)
@@ -44,6 +46,32 @@ class 定时任务(抽象定时任务):
         )
         .decode()
     )
+
+    def 写入数据记录字典(self, d: dict):
+        records = self.数据.setdefault("数据记录", [])
+        d.update({"时间": int(time.time())})
+        records.append(d)
+        self.save()
+
+    @property
+    def df_数据记录(self):
+        df = pandas.DataFrame(self.数据.get("数据记录", []))
+        return df if df.empty else df.sort_values(by="时间")
+
+    
+    def 变更间隔秒数(self, 每小时最多运行次数: int = 8, 两次运行最小间隔秒数=10 * 60, 间隔秒数=None):
+        from douyin.tool_dy_score import 计算下一次运行等待秒数
+
+        if 间隔秒数 is not None:
+            self.间隔秒 = 间隔秒数
+        else:
+            self.间隔秒 = 计算下一次运行等待秒数(
+                df=self.df_数据记录,
+                两次运行最小间隔秒数=两次运行最小间隔秒数,
+                每小时最多运行次数=每小时最多运行次数,
+            )
+        self.save()
+
 
     @classmethod
     def 从网络加载数据(cls, url):
