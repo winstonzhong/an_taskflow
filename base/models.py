@@ -86,7 +86,6 @@ class 定时任务(抽象定时任务):
             data['设定时间'] = tool_date.北京时间字符串转UTC(data.get("设定时间"))
             data["begin_time"] = tool_date.北京时间字符串转UTC(data.get("begin_time"))
             data["end_time"] = tool_date.北京时间字符串转UTC(data.get("end_time"))
-            
             cls.objects.get_or_create(名称=data.get("名称"), defaults=data)
 
 
