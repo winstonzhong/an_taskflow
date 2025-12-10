@@ -11,6 +11,7 @@ from caidao_tools.django.base_admin import 抽象定时任务Admin
 from urllib.parse import urlencode
 
 from django.db.models import F
+
 # Register your models here.
 
 
@@ -36,6 +37,7 @@ class 定时任务Admin(抽象定时任务Admin):
         "group_name",
         "队列名称",
         "优先级",
+        "间隔秒",
         "名称",
         "执行函数",
         "任务描述视图",
@@ -48,24 +50,29 @@ class 定时任务Admin(抽象定时任务Admin):
         "设备相关",
     ]
 
-    list_filter = ["group_name","激活"]
-    
-    list_editable = ('优先级',"队列名称")
+    list_filter = ["group_name", "激活"]
 
-    actions = ("clone_task", "反转输出调试信息", "切换激活状态")
+    list_editable = ("优先级", "队列名称", "group_name")
 
-    
-    
+    actions = ("clone_task", "反转输出调试信息", "切换激活状态", "组成一组")
+
+    def 组成一组(self, request, queryset):
+        名称 = queryset.order_by("id").first().group_name
+        queryset.update(group_name=名称)
+
+    组成一组.short_description = "将选中项组成一组"
+
     def clone_task(self, request, queryset):
         for task in queryset:
             task.clone()
+
     clone_task.short_description = "克隆定时任务"
 
     def 反转输出调试信息(self, request, queryset):
-        queryset.update(输出调试信息=(F('输出调试信息')+1) % 2)
+        queryset.update(输出调试信息=(F("输出调试信息") + 1) % 2)
 
     def 切换激活状态(self, request, queryset):
-        queryset.update(激活=(F('激活') + 1) % 2)
+        queryset.update(激活=(F("激活") + 1) % 2)
 
     def 任务描述视图(self, obj):
         desc = obj.任务描述 or ""

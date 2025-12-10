@@ -80,11 +80,17 @@ class Command(BaseCommand):
         # parser.add_argument("--debug", action="store_true", default=False)
 
         # parser.add_argument("--发送", action="store_true", default=False)
-        parser.add_argument("--强制覆盖", action="store_true", default=False)
+        # parser.add_argument("--强制覆盖", action="store_true", default=False)
+
+        parser.add_argument("--删除所有任务", action="store_true", default=False)
 
         parser.add_argument("--强制第一次运行", action="store_true", default=False)
 
         parser.add_argument("--运行定时任务", nargs="?", default=None, type=str)
+
+        parser.add_argument("--导入网络任务", nargs="?", default=None, type=str)
+
+        # https://file.j1.sale/api/file/jobs/49_抖音_同步寻找目标视频并评论2.json
 
         # parser.add_argument("--测试加好友", action="store_true", default=False)
         # parser.add_argument("--exclude", nargs="?", default=None, type=str)
@@ -124,8 +130,15 @@ class Command(BaseCommand):
             print(cfg)
             return
 
+        if options.get("导入网络任务"):
+            url = options.get("导入网络任务")
+            定时任务.导入网络定时任务(url)
+
+        if options.get("删除所有任务"):
+            print(定时任务.objects.all().delete())
+
         if options.get("运行定时任务"):
-            定时任务.从配置表导入定时任务(强制覆盖=options.get("强制覆盖"))
+            # 定时任务.从配置表导入定时任务(强制覆盖=options.get("强制覆盖"))
 
             if tool_env.is_number(options.get("运行定时任务")):
                 kwargs = {"id": options.get("运行定时任务")}
