@@ -71,7 +71,7 @@ class 定时任务Admin(抽象定时任务Admin):
 
     def show_data_records(self, request):
         obj = 定时任务.objects.get(id=request.GET.get("id"))
-        return HttpResponse(obj.df_数据记录.to_html())
+        return HttpResponse(obj.df_数据记录.iloc[::-1].to_html())
 
     def 组成一组(self, request, queryset):
         名称 = queryset.order_by("id").first().group_name
@@ -103,7 +103,11 @@ class 定时任务Admin(抽象定时任务Admin):
                             <div><a href="{url}" target="_blank">{obj.任务服务url or '-'}</a></div>
                          """
         )
-        
+
     def 数据记录看板(self, obj):
         url = f"/admin/base/定时任务/data_records/?id={obj.id}"
-        return mark_safe('''<a href="%s" target="_blank">数据记录看板</a>''' % url) if obj.数据.get('数据记录') else None
+        return (
+            mark_safe("""<a href="%s" target="_blank">数据记录看板</a>""" % url)
+            if obj.数据.get("数据记录")
+            else None
+        )
