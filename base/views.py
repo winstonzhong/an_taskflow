@@ -14,7 +14,7 @@ def 获取记录(func):
 
     def wrapper(self, request, *args, **kwargs):  # 注意：第一个参数是视图实例self
         # 业务逻辑：获取记录（如需动态参数，可后续优化为带参装饰器）
-        obj = 定时任务.objects.filter(名称='test').first()
+        obj = 定时任务.objects.filter(名称='微信自动机器人_xml').first()
         if not obj:  # 完善None判断
             ret_data = api_ret_data()
             ret_data['code'] = API_RET_CODE_RECORD_NOT_EXISTED_ERROR
