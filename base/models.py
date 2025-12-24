@@ -29,6 +29,7 @@ class 定时任务(抽象定时任务):
     网络任务 = models.CharField(null=True, blank=True, max_length=255)
     数据 = models.JSONField(default=dict, blank=True, null=True)
     队列名称 = models.CharField(max_length=50, null=True, blank=True)
+    知识库 = models.BinaryField(null=True)
 
     class Meta:
         indexes = [
@@ -163,3 +164,14 @@ class 定时任务(抽象定时任务):
             cls.objects.filter(名称__in=["微信_微信运动同步"]).exclude(
                 间隔秒=60 * 30
             ).update(间隔秒=60 * 30)
+
+    @property
+    def 用户配置(self):
+        data = self.数据.get('user_config', dict())
+        # data['has_knowledge_base_content'] = True if data.pop('knowledge_base_content', '') else False
+        return data
+
+    def 保存用户配置(self, key, value):
+        self.数据.setdefault('user_config', dict())
+        self.数据['user_config'][key] = value
+        self.save(update_fields=["数据"])

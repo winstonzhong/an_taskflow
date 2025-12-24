@@ -14,3 +14,6 @@ progress==1.6
 cached_property==1.5.2
 uiautomator2==2.16.25
 redis==5.0.4
+pymemcache==4.0.0
+djangorestframework==3.15.0
+django-cors-headers==4.3.1

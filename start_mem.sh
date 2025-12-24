@@ -1,0 +1,1 @@
+memcached -d -u $(whoami) -p 11211 -I 6m
