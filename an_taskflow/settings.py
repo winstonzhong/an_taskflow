@@ -53,11 +53,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # 'corsheaders',
     'base',
     # 'weixin',
 ]
 
 MIDDLEWARE = [
+    # "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -65,6 +67,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
 ]
 
 ROOT_URLCONF = 'an_taskflow.urls'
@@ -138,3 +141,32 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
+        'LOCATION': '127.0.0.1:11211',
+        'TIMEOUT': 300,  # 缓存过期时间（通用参数，可保留）
+        # 仅保留 pymemcache 支持的专属配置，移除 MAX_ENTRIES 和 CULL_FREQUENCY
+        'OPTIONS': {
+            'connect_timeout': 5,
+            'timeout': 1,
+        }
+    }
+}
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework.authentication.BasicAuthentication",
+        # 'rest_framework.authentication.TokenAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication',
+    ),
+}
+# CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOW_ALL_ORIGINS = False
+# CORS_ALLOWED_ORIGINS = [
+#     "https://coco.j1.sale",  # 你的前端域名
+#     # 如需多个源，依次添加
+#     # "https://xxx.j1.sale",
+# ]
+# CORS_ALLOW_CREDENTIALS = True  # 允许携带Cookie/认证信息
