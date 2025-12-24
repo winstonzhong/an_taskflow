@@ -165,13 +165,23 @@ class 定时任务(抽象定时任务):
                 间隔秒=60 * 30
             ).update(间隔秒=60 * 30)
 
-    @property
-    def 用户配置(self):
+    def 用户配置(self, user=None):
+        # print('数据', self.数据)
         data = self.数据.get('user_config', dict())
+        if user:
+            data = data.get(user, dict())
+        else:
+            data = data.get('global', dict())
+        data['roles'] = self.数据.get('roles', list())
         # data['has_knowledge_base_content'] = True if data.pop('knowledge_base_content', '') else False
         return data
 
-    def 保存用户配置(self, key, value):
+    def 保存用户配置(self, key, value, friend=None):
         self.数据.setdefault('user_config', dict())
-        self.数据['user_config'][key] = value
+        if friend:
+            self.数据['user_config'].setdefault(friend, dict())
+            self.数据['user_config'][friend][key] = value
+        else:
+            self.数据['user_config'].setdefault('global', dict())
+            self.数据['user_config']['global'][key] = value
         self.save(update_fields=["数据"])

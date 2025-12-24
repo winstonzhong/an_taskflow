@@ -48,6 +48,7 @@ def get_mock_img_data2():
                  'prompt': '这是提示词',
                  'reply': '这是回复',
                  "is_in_wx": True,
+                 'friend': '张三',
                  }
     return page_data
 
@@ -85,9 +86,8 @@ class 页面数据视图(APIView):
         # page_data = get_mock_img_data2()
         if page_data:
             page_data['img_data'] = bin_to_base64url(page_data['img_data'])
-
-            page_data['user_config'] = obj.用户配置
-        print('obj', obj)
+            page_data['config'] = obj.用户配置(page_data.get('friend'))
+        # print('page_data', page_data)
         ret_data = api_ret_data(page_data)
         return JsonResponse(ret_data)
 
@@ -101,7 +101,7 @@ class 页面操作视图(APIView):
             ret_data['code'] = API_RET_CODE_PARAMS_ERROR
             ret_data['msg'] = '参数错误'
             return JsonResponse(ret_data)
-        print('data', data)
+        # print('data', data)
         插入操作数据(data)
         return JsonResponse(ret_data)
 
@@ -110,6 +110,7 @@ class 用户配置视图(APIView):
 
     @获取记录
     def get(self, request, *args, obj=None, **kwargs):
+
         配置数据 = obj.用户配置
         # 配置数据 = get_mock_config_data()
         ret_data = api_ret_data(配置数据)
@@ -118,14 +119,18 @@ class 用户配置视图(APIView):
     @获取记录
     def post(self, request, *args, obj=None, **kwargs):
         ret_data = api_ret_data()
+
         data = request.data or dict()
+        # print('data', data)
+
         key = data.get('key')
         value = data.get('value')
+        friend = data.get('friend')
         if not key:
             ret_data['code'] = API_RET_CODE_PARAMS_ERROR
             ret_data['msg'] = '参数错误'
             return JsonResponse(ret_data)
-        obj.保存用户配置(key, value)
+        obj.保存用户配置(key, value, friend=friend)
         return JsonResponse(ret_data)
 
 
@@ -134,7 +139,7 @@ class 用户知识库视图(APIView):
     @获取记录
     def post(self, request, *args, obj=None, **kwargs):
         ret_data = api_ret_data()
-        print('files', dir(request.FILES))
+        # print('files', dir(request.FILES))
 
         # 1. 获取上传的文件
         if 'file' not in request.FILES:
@@ -143,7 +148,7 @@ class 用户知识库视图(APIView):
                 'msg': '请选择要上传的文件'
             }, status=400)
         uploaded_file = request.FILES['file']
-        print('name', uploaded_file.name)
+        # print('name', uploaded_file.name)
         # 2. 读取文件二进制内容（分块读取，兼容大文件）
         file_binary_data = b""
         for chunk in uploaded_file.chunks():

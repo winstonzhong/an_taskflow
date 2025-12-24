@@ -4,7 +4,7 @@ from django.core.cache import cache
 页面数据_key = 'page_data'
 操作_key = 'operation_data'
 知识库_key = 'knowledge_base'
-CACHE_TIMEOUT = 10
+CACHE_TIMEOUT = 3600*24
 
 
 
