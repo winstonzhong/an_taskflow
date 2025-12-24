@@ -71,7 +71,20 @@ class 定时任务Admin(抽象定时任务Admin):
 
     def show_data_records(self, request):
         obj = 定时任务.objects.get(id=request.GET.get("id"))
-        return HttpResponse(obj.df_数据记录.iloc[::-1].to_html())
+
+        df = obj.df_数据记录
+
+        df["时间"] = (
+            pandas.to_datetime(
+                df["时间"],  # 原始Unix时间戳（秒级）
+                unit="s",  # 时间戳单位：秒（time.time()默认）
+                utc=True,  # 先锚定到UTC（必须！否则基准错误）
+            )
+            .dt.tz_convert("Asia/Shanghai")  # 直接转换为北京时间时区
+            .dt.strftime("%Y-%m-%d %H:%M:%S")
+        )
+
+        return HttpResponse(df.iloc[::-1].to_html())
 
     def 组成一组(self, request, queryset):
         名称 = queryset.order_by("id").first().group_name
