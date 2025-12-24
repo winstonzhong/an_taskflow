@@ -12,6 +12,10 @@ from urllib.parse import urlencode
 
 from django.db.models import F
 
+from django.urls.conf import path
+
+from django.http.response import HttpResponseRedirect, HttpResponse
+
 # Register your models here.
 
 
@@ -39,8 +43,8 @@ class 定时任务Admin(抽象定时任务Admin):
         "优先级",
         "间隔秒",
         "名称",
-        "执行函数",
-        "任务描述视图",
+        # "执行函数",
+        # "任务描述视图",
         "update_time",
         "begin_time",
         "end_time",
@@ -48,6 +52,7 @@ class 定时任务Admin(抽象定时任务Admin):
         "激活",
         "输出调试信息",
         "设备相关",
+        "数据记录看板",
     ]
 
     list_filter = ["group_name", "激活"]
@@ -55,6 +60,31 @@ class 定时任务Admin(抽象定时任务Admin):
     list_editable = ("优先级", "队列名称", "group_name")
 
     actions = ("clone_task", "反转输出调试信息", "切换激活状态", "组成一组")
+
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [
+            path("data_records/", self.show_data_records),
+        ]
+        print(my_urls)
+        return my_urls + urls
+
+    def show_data_records(self, request):
+        obj = 定时任务.objects.get(id=request.GET.get("id"))
+
+        df = obj.df_数据记录
+
+        df["时间"] = (
+            pandas.to_datetime(
+                df["时间"],  # 原始Unix时间戳（秒级）
+                unit="s",  # 时间戳单位：秒（time.time()默认）
+                utc=True,  # 先锚定到UTC（必须！否则基准错误）
+            )
+            .dt.tz_convert("Asia/Shanghai")  # 直接转换为北京时间时区
+            .dt.strftime("%Y-%m-%d %H:%M:%S")
+        )
+
+        return HttpResponse(df.iloc[::-1].to_html())
 
     def 组成一组(self, request, queryset):
         名称 = queryset.order_by("id").first().group_name
@@ -85,4 +115,12 @@ class 定时任务Admin(抽象定时任务Admin):
                             <div>任务下载参数: {obj.任务下载参数}</div>
                             <div><a href="{url}" target="_blank">{obj.任务服务url or '-'}</a></div>
                          """
+        )
+
+    def 数据记录看板(self, obj):
+        url = f"/admin/base/定时任务/data_records/?id={obj.id}"
+        return (
+            mark_safe("""<a href="%s" target="_blank">数据记录看板</a>""" % url)
+            if obj.数据.get("数据记录")
+            else None
         )
