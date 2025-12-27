@@ -66,7 +66,7 @@ class 定时任务Admin(抽象定时任务Admin):
         my_urls = [
             path("data_records/", self.show_data_records),
         ]
-        print(my_urls)
+        # print(my_urls)
         return my_urls + urls
 
     def show_data_records(self, request):
