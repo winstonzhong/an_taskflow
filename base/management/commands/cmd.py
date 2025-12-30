@@ -22,6 +22,12 @@ from urllib.parse import unquote
 
 import config_reader
 
+
+from django.utils import timezone
+from datetime import datetime
+
+import tool_date
+
 # def change_suffix(url, suffix):
 #     return url.rsplit(".", 1)[0] + "." + suffix
 
@@ -59,6 +65,26 @@ def download_file(url, suffix=".mp3"):
                         f.write(chunk)
             return tmp.name, fname
 
+def get_query_kwargs(line:str, 不考虑任务时间因素=False):
+    kwargs = {'不考虑任务时间因素':不考虑任务时间因素}
+    if tool_env.is_number(line):
+        kwargs.update(id=line)
+    else:
+        kwargs.update(group_name=line)
+    return kwargs
+    # return 定时任务.得到所有待执行的任务(**kwargs)
+
+
+def list_tasks(line:str):
+    kwargs = get_query_kwargs(line, 不考虑任务时间因素=True)
+    q = 定时任务.得到所有待执行的任务(**kwargs)
+    assert q.count(), "没有找到定时任务"
+    print('=' * 50)
+    print(f"总共包含任务数：{q.count()}")
+    for i, x in enumerate(q):
+        print(i, x)
+    # return kwargs
+
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
@@ -84,7 +110,7 @@ class Command(BaseCommand):
 
         parser.add_argument("--删除所有任务", action="store_true", default=False)
 
-        parser.add_argument("--强制第一次运行", action="store_true", default=False)
+        # parser.add_argument("--强制第一次运行", action="store_true", default=False)
 
         parser.add_argument("--运行定时任务", nargs="?", default=None, type=str)
 
@@ -94,7 +120,9 @@ class Command(BaseCommand):
 
         # parser.add_argument("--测试加好友", action="store_true", default=False)
         # parser.add_argument("--exclude", nargs="?", default=None, type=str)
-        # parser.add_argument("--list", action="store_true", default=False)
+        parser.add_argument("--列出", nargs="?", default=None, type=str)
+        
+        parser.add_argument("--重置更新时间", nargs="?", default=None, type=str)
 
     def handle(self, *args, **options):
         定时任务.IP_PORT = options.get("ip_port")
@@ -137,31 +165,26 @@ class Command(BaseCommand):
         if options.get("删除所有任务"):
             print(定时任务.objects.all().delete())
 
-        if options.get("运行定时任务"):
-            # 定时任务.从配置表导入定时任务(强制覆盖=options.get("强制覆盖"))
+        if options.get("列出"):
+            list_tasks(options.get("列出"))
 
-            if tool_env.is_number(options.get("运行定时任务")):
-                kwargs = {"id": options.get("运行定时任务")}
-            else:
-                kwargs = {
-                    "group_name": options.get("运行定时任务"),
-                    "_exclude": options.get("exclude") or "",
-                }
-            print(kwargs)
-            q = 定时任务.得到所有待执行的任务(_without_updated=1, **kwargs)
+        if options.get("重置更新时间"):
+            kwargs = get_query_kwargs(options.get("重置更新时间"), 不考虑任务时间因素=True)
+            q = 定时任务.得到所有待执行的任务(**kwargs)
             assert q.count(), "没有找到定时任务"
-
-            if options.get("强制第一次运行"):
-                q.update(update_time="2000-01-01")
-
-            print(f"开始执行以下任务：{q.count()}")
+            print('=' * 50)
+            tdate = '2000-01-01'
+            print(f"将总共重置以下任务的更新日期到：{tdate}")
             for i, x in enumerate(q):
                 print(i, x)
-                # x.更新任务间隔时间()
+            naive_datetime = datetime.strptime(tdate, "%Y-%m-%d")
+            aware_datetime = timezone.make_aware(naive_datetime)
+            q.update(update_time=aware_datetime)
 
-            if options.get("list"):
-                return
 
+        if options.get("运行定时任务"):
+            list_tasks(options.get("运行定时任务"))
+            kwargs = get_query_kwargs(options.get("运行定时任务"), 不考虑任务时间因素=False)
             try:
                 定时任务.执行所有定时任务(
                     单步=options.get("step"),
