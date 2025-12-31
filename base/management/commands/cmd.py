@@ -12,6 +12,8 @@ from django.core.management.base import BaseCommand
 # from my_robot.base.models import 手机设备
 from base.models import 定时任务
 
+from adb_tools import tool_xpath
+
 import tool_env
 from adb_tools.helper_adb import BaseAdb
 
@@ -65,8 +67,9 @@ def download_file(url, suffix=".mp3"):
                         f.write(chunk)
             return tmp.name, fname
 
-def get_query_kwargs(line:str, 不考虑任务时间因素=False):
-    kwargs = {'不考虑任务时间因素':不考虑任务时间因素}
+
+def get_query_kwargs(line: str, 不考虑任务时间因素=False):
+    kwargs = {"不考虑任务时间因素": 不考虑任务时间因素}
     if tool_env.is_number(line):
         kwargs.update(id=line)
     else:
@@ -75,11 +78,11 @@ def get_query_kwargs(line:str, 不考虑任务时间因素=False):
     # return 定时任务.得到所有待执行的任务(**kwargs)
 
 
-def list_tasks(line:str):
+def list_tasks(line: str):
     kwargs = get_query_kwargs(line, 不考虑任务时间因素=True)
     q = 定时任务.得到所有待执行的任务(**kwargs)
     assert q.count(), "没有找到定时任务"
-    print('=' * 50)
+    print("=" * 50)
     print(f"总共包含任务数：{q.count()}")
     for i, x in enumerate(q):
         print(i, x)
@@ -121,8 +124,23 @@ class Command(BaseCommand):
         # parser.add_argument("--测试加好友", action="store_true", default=False)
         # parser.add_argument("--exclude", nargs="?", default=None, type=str)
         parser.add_argument("--列出", nargs="?", default=None, type=str)
-        
+
         parser.add_argument("--重置更新时间", nargs="?", default=None, type=str)
+
+        parser.add_argument("--最低分", nargs="?", default=60, type=int)
+
+        parser.add_argument("--最高上限", nargs="?", default=10000, type=int)
+
+        parser.add_argument("--最低下限", nargs="?", default=1, type=int)
+
+        parser.add_argument(
+            "--关键词",
+            nargs="?",
+            default="美甲,法式甲,甲片延长,贴片甲,光疗甲,短甲款式,猫眼甲,半永久甲,新娘甲,卸甲油,不伤甲,护甲油",
+            type=str,
+        )
+
+        parser.add_argument("--排除关键词", nargs="?", default="游戏", type=str)
 
     def handle(self, *args, **options):
         定时任务.IP_PORT = options.get("ip_port")
@@ -169,11 +187,13 @@ class Command(BaseCommand):
             list_tasks(options.get("列出"))
 
         if options.get("重置更新时间"):
-            kwargs = get_query_kwargs(options.get("重置更新时间"), 不考虑任务时间因素=True)
+            kwargs = get_query_kwargs(
+                options.get("重置更新时间"), 不考虑任务时间因素=True
+            )
             q = 定时任务.得到所有待执行的任务(**kwargs)
             assert q.count(), "没有找到定时任务"
-            print('=' * 50)
-            tdate = '2000-01-01'
+            print("=" * 50)
+            tdate = "2000-01-01"
             print(f"将总共重置以下任务的更新日期到：{tdate}")
             for i, x in enumerate(q):
                 print(i, x)
@@ -181,10 +201,17 @@ class Command(BaseCommand):
             aware_datetime = timezone.make_aware(naive_datetime)
             q.update(update_time=aware_datetime)
 
-
         if options.get("运行定时任务"):
+            tool_xpath.global_rom.最低分 = options.get("最低分")
+            tool_xpath.global_rom.关键词 = options.get("关键词").split(",")
+            tool_xpath.global_rom.排除关键词 = options.get("排除关键词").split(",")
+            tool_xpath.global_rom.最高上限 = options.get("最高上限")
+            tool_xpath.global_rom.最低下限 = options.get("最低下限")
+
             list_tasks(options.get("运行定时任务"))
-            kwargs = get_query_kwargs(options.get("运行定时任务"), 不考虑任务时间因素=False)
+            kwargs = get_query_kwargs(
+                options.get("运行定时任务"), 不考虑任务时间因素=False
+            )
             try:
                 定时任务.执行所有定时任务(
                     单步=options.get("step"),
