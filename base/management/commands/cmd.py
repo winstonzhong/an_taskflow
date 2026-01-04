@@ -133,7 +133,7 @@ class Command(BaseCommand):
 
         parser.add_argument("--最低下限", nargs="?", default=100, type=int)
 
-        parser.add_argument("--最低互动总数", nargs="?", default=100, type=int)
+        parser.add_argument("--最低互动总数", nargs="?", default=0, type=int)
 
         # parser.add_argument(
         #     "--关键词",
