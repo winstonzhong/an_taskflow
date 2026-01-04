@@ -48,33 +48,6 @@ class 定时任务(抽象定时任务):
         .decode()
     )
 
-    # def 写入数据记录字典(self, d: dict):
-    #     records = self.数据.setdefault("数据记录", [])
-    #     d.update({"时间": int(time.time())})
-    #     records.append(d)
-    #     self.save()
-
-    # @property
-    # def df_数据记录(self):
-    #     df = pandas.DataFrame(self.数据.get("数据记录", []))
-    #     return df if df.empty else df.sort_values(by="时间")
-
-    
-    
-    # def 变更间隔秒数(self, 每小时最多运行次数: int = 8, 两次运行最小间隔秒数=10 * 60, 间隔秒数=None):
-    #     from douyin.tool_dy_score import 计算下一次运行等待秒数
-
-    #     if 间隔秒数 is not None:
-    #         self.间隔秒 = 间隔秒数
-    #     else:
-    #         self.间隔秒 = 计算下一次运行等待秒数(
-    #             df=self.df_数据记录,
-    #             两次运行最小间隔秒数=两次运行最小间隔秒数,
-    #             每小时最多运行次数=每小时最多运行次数,
-    #         )
-    #     self.save()
-
-
     @classmethod
     def 从网络加载数据(cls, url):
         name = url.rsplit("/", maxsplit=1)[-1].rsplit(".", maxsplit=1)[0]
@@ -82,13 +55,16 @@ class 定时任务(抽象定时任务):
         return data
 
     @classmethod
-    def 导入网络定时任务(cls, url):
+    def 导入网络定时任务(cls, url, 强制更新=False):
         for data in cls.从网络加载数据(url):
             data = data.get("meta_flow")
             data['设定时间'] = tool_date.北京时间字符串转UTC(data.get("设定时间"))
             data["begin_time"] = tool_date.北京时间字符串转UTC(data.get("begin_time"))
             data["end_time"] = tool_date.北京时间字符串转UTC(data.get("end_time"))
-            cls.objects.get_or_create(名称=data.get("名称"), defaults=data)
+            if not 强制更新:
+                cls.objects.get_or_create(名称=data.get("名称"), defaults=data)
+            else:
+                cls.objects.update_or_create(名称=data.get("名称"), defaults=data)
 
 
     @property

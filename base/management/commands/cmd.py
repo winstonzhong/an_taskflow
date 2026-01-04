@@ -109,7 +109,7 @@ class Command(BaseCommand):
         # parser.add_argument("--debug", action="store_true", default=False)
 
         # parser.add_argument("--发送", action="store_true", default=False)
-        # parser.add_argument("--强制覆盖", action="store_true", default=False)
+        parser.add_argument("--强制更新", action="store_true", default=False)
 
         parser.add_argument("--删除所有任务", action="store_true", default=False)
 
@@ -129,14 +129,23 @@ class Command(BaseCommand):
 
         parser.add_argument("--最低分", nargs="?", default=60, type=int)
 
-        parser.add_argument("--最高上限", nargs="?", default=10000, type=int)
+        parser.add_argument("--最高上限", nargs="?", default=2000, type=int)
 
-        parser.add_argument("--最低下限", nargs="?", default=1, type=int)
+        parser.add_argument("--最低下限", nargs="?", default=100, type=int)
+
+        parser.add_argument("--最低互动总数", nargs="?", default=100, type=int)
+
+        # parser.add_argument(
+        #     "--关键词",
+        #     nargs="?",
+        #     default="美甲,法式甲,甲片延长,贴片甲,光疗甲,短甲款式,猫眼甲,半永久甲,新娘甲,卸甲油,不伤甲,护甲油",
+        #     type=str,
+        # )
 
         parser.add_argument(
             "--关键词",
             nargs="?",
-            default="美甲,法式甲,甲片延长,贴片甲,光疗甲,短甲款式,猫眼甲,半永久甲,新娘甲,卸甲油,不伤甲,护甲油",
+            default="",
             type=str,
         )
 
@@ -178,7 +187,7 @@ class Command(BaseCommand):
 
         if options.get("导入网络任务"):
             url = options.get("导入网络任务")
-            定时任务.导入网络定时任务(url)
+            定时任务.导入网络定时任务(url, options.get("强制更新"))
 
         if options.get("删除所有任务"):
             print(定时任务.objects.all().delete())
@@ -203,10 +212,11 @@ class Command(BaseCommand):
 
         if options.get("运行定时任务"):
             tool_xpath.global_rom.最低分 = options.get("最低分")
-            tool_xpath.global_rom.关键词 = options.get("关键词").split(",")
-            tool_xpath.global_rom.排除关键词 = options.get("排除关键词").split(",")
+            tool_xpath.global_rom.关键词 = options.get("关键词")  # .split(",")
+            tool_xpath.global_rom.排除关键词 = options.get("排除关键词")  # .split(",")
             tool_xpath.global_rom.最高上限 = options.get("最高上限")
             tool_xpath.global_rom.最低下限 = options.get("最低下限")
+            tool_xpath.global_rom.最低互动总数 = options.get("最低互动总数")
 
             list_tasks(options.get("运行定时任务"))
             kwargs = get_query_kwargs(
