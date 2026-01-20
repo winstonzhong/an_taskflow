@@ -11,7 +11,7 @@ from commons.utils import filter_records_by_time
 
 from helper_jfp import JobFilePersistence
 
-from adb_tools.tool_xpath import 基本任务列表
+from adb_tools.tool_xpath import 基本任务列表, SteadyDevice
 
 import json
 
@@ -122,6 +122,22 @@ class 定时任务(抽象定时任务):
                 "title": None,
                 "clsname": None,
             }
+
+    # @property
+    # def 当前设备(self):
+    #     if self.设备相关:
+    #         return SteadyDevice.from_ip_port(
+    #                     定时任务.IP_PORT,
+    #                     refresh_init=False,
+    #                     need_screen=False,
+    #                     need_xml=True,
+    #                 )
+
+    # @property
+    # def 当前设备串口号(self):
+    #     device = self.当前设备
+    #     if device is not None:
+    #         return self.当前设备.serialno
 
     @property
     def 远程流程(self):
