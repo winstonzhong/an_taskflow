@@ -30,6 +30,8 @@ from datetime import datetime
 
 import tool_date
 
+from adb_tools import tool_xpath
+
 # def change_suffix(url, suffix):
 #     return url.rsplit(".", 1)[0] + "." + suffix
 
@@ -175,14 +177,22 @@ class Command(BaseCommand):
             return
 
         if options.get("testit"):
-            usb_device = BaseAdb.first_device_usb()
-            adb = BaseAdb(usb_device)
-            print(adb)
-            package = "com.tencent.mm"
-            activity = ".ui.LauncherUI"
-            adb.open_certain_app(package, activity)
-            cfg = config_reader.read_config_from_file("config.txt")
-            print(cfg)
+            # usb_device = BaseAdb.first_device_usb()
+            # adb = BaseAdb(usb_device)
+            # print(adb)
+            # package = "com.tencent.mm"
+            # activity = ".ui.LauncherUI"
+            # adb.open_certain_app(package, activity)
+            # cfg = config_reader.read_config_from_file("config.txt")
+            # print(cfg)
+            sd = tool_xpath.SteadyDevice.from_ip_port(
+                定时任务.IP_PORT,
+                refresh_init=False,
+                need_screen=False,
+                need_xml=True,
+            )
+            print(sd.adb.serialno)
+
             return
 
         if options.get("导入网络任务"):
