@@ -1,9 +1,13 @@
+import threading
+
 from django.db import models
 from django.utils import timezone
 
+from base.management.commands.external_api import push_task_data
 from caidao_tools.django.abstract import (
     抽象定时任务,
 )
+from commons.utils import filter_records_by_time
 
 from helper_jfp import JobFilePersistence
 
@@ -47,6 +51,39 @@ class 定时任务(抽象定时任务):
         )
         .decode()
     )
+
+    def save(self, *args, **kwargs):
+        # 先调用父类的save方法，确保update_time有值
+        super().save(*args, **kwargs)
+
+        try:
+            # 解析数据字段
+            data_dict = self.数据 or {}
+            data_records = data_dict.get("数据记录", [])
+
+            # 调用独立的筛选函数
+            newer_records = filter_records_by_time(
+                data_records=data_records,
+                update_time=self.update_time,
+            )
+
+            post_data = {
+                'name': self.名称,
+                'data_list': newer_records,
+                'device_id': '123',
+            }
+
+            # ws_thread = threading.Thread(target=push_task_data, args=(post_data,), daemon=True)
+            # ws_thread.start()
+            push_task_data(post_data)
+            # 打印结果
+            print("===== 使用Pandas筛选出的晚于update_time的记录 =====")
+            print(len(newer_records))
+            print(newer_records)
+
+        except Exception as e:
+            print(f"处理数据出错: {e}")
+
 
     @classmethod
     def 从网络加载数据(cls, url):
