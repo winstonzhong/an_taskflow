@@ -1,3 +1,7 @@
+import traceback
+
+import functools
+
 import threading
 
 from django.db import models
@@ -34,6 +38,7 @@ class 定时任务(抽象定时任务):
     数据 = models.JSONField(default=dict, blank=True, null=True)
     队列名称 = models.CharField(max_length=50, null=True, blank=True)
     知识库 = models.BinaryField(null=True)
+    上一次推送时间 = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         indexes = [
@@ -42,7 +47,8 @@ class 定时任务(抽象定时任务):
 
     缓存 = {}
 
-    IP_PORT = None
+    # IP_PORT = None
+    IP_PORT = '192.168.0.165:7080'
 
     TOKEN = (
         StrSecret(b"QPvcOCN78U0vb9f7z-vOz-n3V5eiKzbhyUYSLogyS9o=")
@@ -51,6 +57,21 @@ class 定时任务(抽象定时任务):
         )
         .decode()
     )
+
+    @classmethod
+    @functools.lru_cache(maxsize=None)
+    def 当前设备(cls):
+        return SteadyDevice.from_ip_port(
+                    定时任务.IP_PORT,
+                )
+
+    @classmethod
+    @functools.lru_cache(maxsize=None)
+    def 当前设备串口号(cls):
+        device = cls.当前设备()
+        if device is not None:
+            return device.adb.serialno
+
 
     def save(self, *args, **kwargs):
         # 先调用父类的save方法，确保update_time有值
@@ -64,24 +85,26 @@ class 定时任务(抽象定时任务):
             # 调用独立的筛选函数
             newer_records = filter_records_by_time(
                 data_records=data_records,
-                update_time=self.update_time,
+                update_time=self.上一次推送时间,
             )
 
             post_data = {
                 'name': self.名称,
                 'data_list': newer_records,
-                'device_id': '123',
+                'device_id': self.当前设备串口号(),
             }
-
-            # ws_thread = threading.Thread(target=push_task_data, args=(post_data,), daemon=True)
-            # ws_thread.start()
-            push_task_data(post_data)
+            # print(post_data)
+            ws_thread = threading.Thread(target=push_task_data, args=(post_data,), daemon=True)
+            ws_thread.start()
+            self.上一次推送时间 = timezone.now()
+            # push_task_data(post_data)
             # 打印结果
             print("===== 使用Pandas筛选出的晚于update_time的记录 =====")
             print(len(newer_records))
-            print(newer_records)
+            # print(newer_records)
 
         except Exception as e:
+            traceback.print_exc()
             print(f"处理数据出错: {e}")
 
 

@@ -172,6 +172,9 @@ def filter_records_by_time(data_records: list, update_time: datetime, time_key: 
     >>> result[0]["内容"]
     '记录2'
 
+    >>> result = filter_records_by_time(test_records, None)
+    >>> len(result)
+    3
     >>> # 2. 自定义time_key测试
     >>> test_records_custom = [
     ...     {"内容": "记录A", "时间戳": 1710000000},
@@ -190,13 +193,22 @@ def filter_records_by_time(data_records: list, update_time: datetime, time_key: 
     []
     >>> filter_records_by_time([{"内容": "记录1"}], test_update_time)
     []
+
+    >>> data_list = [{'原始 评论': '这种串门团购分享的创作态度很值得学习，🌈大！之前拍这类同城内容，完播率慢慢涨到四成出头，互动也比之前热闹不少，越做越有感觉～', '修正评论': '这种串门 团购分享的创作态度很值得学习，🙌大！之前拍这类同城内容，完播率慢慢涨到四成出头，互动也比之前热闹不少，越做越有感觉。', '合法': True, '时间': 1768921874.8352716}]
+    >>> filter_records_by_time(data_list, datetime(2026, 1, 21, 3, 2, 0, 85747, tzinfo=timezone.utc))
+    []
     """
     # 存储符合条件的记录
     newer_records = []
 
+    # print(type(update_time))
+
     # 基础校验：非列表或空列表直接返回
     if not isinstance(data_records, list) or len(data_records) == 0:
         return newer_records
+
+    if not update_time:
+        return data_records
 
     # 遍历每条记录
     for record in data_records:
@@ -235,16 +247,16 @@ if __name__ == "__main__":
     # 运行单元测试，-v参数显示详细结果
     print(doctest.testmod(verbose=False, report=False))
 
-    x = filter_records_by_time([{
-                                "截屏": "https://file.j1.sale/api/file/tmp/2026-01-07/d223feb0-eb77-11f0-82e9-0242ac120005.jpg",
-                                "回复": "回复 @💞爱财爱己໑ຼ₀26💕", "类型": "月亮正在充电回复自己视频的评论",
-                                "原始": "太厉害了吧！政策给力，有想法又肯干还能得到支持，这就是诚信经营、努力付出的好结果呀，为老同学开心～",
-                                "修正": "太厉害了吧！政策给力，有想法又肯干还能得到支持，这就是诚信经营、努力付出的好结果呀，为老同学开心！", "合法": True,
-                                "时间": 1767756051}, {
-                                "截屏": "https://file.j1.sale/api/file/tmp/2026-01-07/ec663fcc-eb77-11f0-99a5-0242ac120005.jpg",
-                                "回复": "回复 @咘&訁", "类型": "月亮正在充电回复自己视频的评论",
-                                "原始": "这些生活小美好也太治愈啦！和家人相伴、静心阅读，慢慢经营生活的感觉超棒～ 生活和商业一样，用心对待才会收获满满呀～",
-                                "修正": "这些生活小美好也太治愈啦！和家人相伴、静心阅读，慢慢经营生活的感觉超棒～ 生活和商业一样，用心对待才会收获满满呀!", "合法": True,
-                                "时间": 1767756089}],
-                           datetime(2026, 1, 7, 11, 20, 35, tzinfo=zoneinfo.ZoneInfo(key='Asia/Shanghai')))
-    print(x)
+    # x = filter_records_by_time([{
+    #                             "截屏": "https://file.j1.sale/api/file/tmp/2026-01-07/d223feb0-eb77-11f0-82e9-0242ac120005.jpg",
+    #                             "回复": "回复 @💞爱财爱己໑ຼ₀26💕", "类型": "月亮正在充电回复自己视频的评论",
+    #                             "原始": "太厉害了吧！政策给力，有想法又肯干还能得到支持，这就是诚信经营、努力付出的好结果呀，为老同学开心～",
+    #                             "修正": "太厉害了吧！政策给力，有想法又肯干还能得到支持，这就是诚信经营、努力付出的好结果呀，为老同学开心！", "合法": True,
+    #                             "时间": 1767756051}, {
+    #                             "截屏": "https://file.j1.sale/api/file/tmp/2026-01-07/ec663fcc-eb77-11f0-99a5-0242ac120005.jpg",
+    #                             "回复": "回复 @咘&訁", "类型": "月亮正在充电回复自己视频的评论",
+    #                             "原始": "这些生活小美好也太治愈啦！和家人相伴、静心阅读，慢慢经营生活的感觉超棒～ 生活和商业一样，用心对待才会收获满满呀～",
+    #                             "修正": "这些生活小美好也太治愈啦！和家人相伴、静心阅读，慢慢经营生活的感觉超棒～ 生活和商业一样，用心对待才会收获满满呀!", "合法": True,
+    #                             "时间": 1767756089}],
+    #                        datetime(2026, 1, 7, 11, 20, 35, tzinfo=zoneinfo.ZoneInfo(key='Asia/Shanghai')))
+    # print(x)
