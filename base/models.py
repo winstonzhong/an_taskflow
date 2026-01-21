@@ -48,7 +48,7 @@ class 定时任务(抽象定时任务):
     缓存 = {}
 
     # IP_PORT = None
-    IP_PORT = '192.168.0.165:7080'
+    IP_PORT = None
 
     TOKEN = (
         StrSecret(b"QPvcOCN78U0vb9f7z-vOz-n3V5eiKzbhyUYSLogyS9o=")
