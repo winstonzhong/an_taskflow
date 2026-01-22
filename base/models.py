@@ -96,6 +96,7 @@ class 定时任务(抽象定时任务):
             # print(post_data)
             ws_thread = threading.Thread(target=push_task_data, args=(post_data,), daemon=True)
             ws_thread.start()
+
             self.上一次推送时间 = timezone.now()
             # push_task_data(post_data)
             # 打印结果
