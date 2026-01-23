@@ -237,7 +237,7 @@ class 定时任务(抽象定时任务):
             ).update(间隔秒=60 * 30)
 
     @classmethod
-    def 心跳上传(cls):
+    def 心跳上传(cls, **kwargs):
         data = {
             'device_id': '1234',
             # 'device_id': self.当前设备串口号(),
