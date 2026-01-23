@@ -136,6 +136,8 @@ class Command(BaseCommand):
         parser.add_argument("--最低下限", nargs="?", default=100, type=int)
 
         parser.add_argument("--最低互动总数", nargs="?", default=0, type=int)
+        
+        parser.add_argument("--不回关", nargs="?", default=0, type=int)
 
         # parser.add_argument(
         #     "--关键词",
@@ -227,6 +229,7 @@ class Command(BaseCommand):
             tool_xpath.global_rom.最高上限 = options.get("最高上限")
             tool_xpath.global_rom.最低下限 = options.get("最低下限")
             tool_xpath.global_rom.最低互动总数 = options.get("最低互动总数")
+            tool_xpath.global_rom.不回关 = options.get("不回关")
 
             list_tasks(options.get("运行定时任务"))
             kwargs = get_query_kwargs(
