@@ -95,8 +95,8 @@ class 定时任务(抽象定时任务):
             post_data = {
                 'name': self.名称,
                 'data_list': newer_records,
-                'device_id': '1234',
-                # 'device_id': self.当前设备串口号(),
+                # 'device_id': '1234',
+                'device_id': self.当前设备串口号(),
             }
             # print(post_data)
 
@@ -239,8 +239,8 @@ class 定时任务(抽象定时任务):
     @classmethod
     def 心跳上传(cls, **kwargs):
         data = {
-            'device_id': '1234',
-            # 'device_id': self.当前设备串口号(),
+            # 'device_id': '1234',
+            'device_id': cls.当前设备串口号(),
             'sys_info':  get_termux_sys_info()
         }
         push_sys_info(data)
