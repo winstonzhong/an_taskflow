@@ -94,7 +94,7 @@ class 定时任务(抽象定时任务):
 
             self.上一次推送时间 = timezone.now()
             super().save(update_fields=['上一次推送时间'], *args, **kwargs)
-            
+
             if newer_records:
                 post_data = {
                     'name': self.名称,
