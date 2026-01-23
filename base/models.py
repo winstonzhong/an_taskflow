@@ -92,30 +92,28 @@ class 定时任务(抽象定时任务):
                 update_time=self.上一次推送时间,
             )
 
-            post_data = {
-                'name': self.名称,
-                'data_list': newer_records,
-                # 'device_id': '1234',
-                'device_id': self.当前设备串口号(),
-            }
-            # print(post_data)
-
-            future = THREAD_POOL.submit(push_task_data, post_data)
-
-            def task_callback(fut):
-                try:
-                    fut.result()  # 触发异常
-                except Exception as e:
-                    print(f"推送任务执行失败: {e}", exc_info=True)
-
-            future.add_done_callback(task_callback)
-
-
-            # ws_thread = threading.Thread(target=push_task_data, args=(post_data,), daemon=True)
-            # ws_thread.start()
-
             self.上一次推送时间 = timezone.now()
             super().save(update_fields=['上一次推送时间'], *args, **kwargs)
+            
+            if newer_records:
+                post_data = {
+                    'name': self.名称,
+                    'data_list': newer_records,
+                    # 'device_id': '1234',
+                    'device_id': self.当前设备串口号(),
+                }
+                # print(post_data)
+
+                future = THREAD_POOL.submit(push_task_data, post_data)
+
+                def task_callback(fut):
+                    try:
+                        fut.result()  # 触发异常
+                    except Exception as e:
+                        print(f"推送任务执行失败: {e}", exc_info=True)
+
+                future.add_done_callback(task_callback)
+
             # push_task_data(post_data)
             # 打印结果
             print("===== 使用Pandas筛选出的晚于update_time的记录 =====")
