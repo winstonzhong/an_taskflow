@@ -7,10 +7,10 @@ import threading
 from django.db import models
 from django.utils import timezone
 
-from base.management.commands.external_api import push_task_data
 from caidao_tools.django.abstract import (
     抽象定时任务,
 )
+from commons.external_api import push_task_data, push_sys_info
 from commons.utils import filter_records_by_time
 
 from helper_jfp import JobFilePersistence
@@ -25,6 +25,7 @@ import tool_date
 import tool_time
 
 from base.management.commands.tasks import TASKS
+from helper_thread_pool import THREAD_POOL
 
 from tool_enc import StrSecret
 
@@ -32,6 +33,9 @@ import time
 
 import pandas
 # Create your models here.
+from tool_sys_info import get_termux_sys_info
+
+
 class 定时任务(抽象定时任务):
     设备相关 = models.BooleanField(default=True)
     网络任务 = models.CharField(null=True, blank=True, max_length=255)
@@ -91,13 +95,27 @@ class 定时任务(抽象定时任务):
             post_data = {
                 'name': self.名称,
                 'data_list': newer_records,
-                'device_id': self.当前设备串口号(),
+                'device_id': '1234',
+                # 'device_id': self.当前设备串口号(),
             }
             # print(post_data)
-            ws_thread = threading.Thread(target=push_task_data, args=(post_data,), daemon=True)
-            ws_thread.start()
+
+            future = THREAD_POOL.submit(push_task_data, post_data)
+
+            def task_callback(fut):
+                try:
+                    fut.result()  # 触发异常
+                except Exception as e:
+                    print(f"推送任务执行失败: {e}", exc_info=True)
+
+            future.add_done_callback(task_callback)
+
+
+            # ws_thread = threading.Thread(target=push_task_data, args=(post_data,), daemon=True)
+            # ws_thread.start()
 
             self.上一次推送时间 = timezone.now()
+            super().save(update_fields=['上一次推送时间'], *args, **kwargs)
             # push_task_data(post_data)
             # 打印结果
             print("===== 使用Pandas筛选出的晚于update_time的记录 =====")
@@ -217,6 +235,16 @@ class 定时任务(抽象定时任务):
             cls.objects.filter(名称__in=["微信_微信运动同步"]).exclude(
                 间隔秒=60 * 30
             ).update(间隔秒=60 * 30)
+
+    @classmethod
+    def 心跳上传(cls):
+        data = {
+            'device_id': '1234',
+            # 'device_id': self.当前设备串口号(),
+            'sys_info':  get_termux_sys_info()
+        }
+        push_sys_info(data)
+
 
     def 用户配置(self, user=None):
         # print('数据', self.数据)
