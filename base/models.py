@@ -241,7 +241,10 @@ class 定时任务(抽象定时任务):
             'device_id': cls.当前设备串口号(),
             'sys_info':  get_termux_sys_info()
         }
-        push_sys_info(data)
+        try:
+            push_sys_info(data)
+        except:
+            traceback.print_exc()
 
 
     def 用户配置(self, user=None):
