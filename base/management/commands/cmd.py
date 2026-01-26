@@ -248,7 +248,7 @@ class Command(BaseCommand):
                 pass
             return
 
-        if options('心跳上报'):
+        if options.get('心跳上报'):
             import time
             import traceback
             from tool_sys_info import get_termux_sys_info
