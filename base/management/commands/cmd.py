@@ -268,8 +268,11 @@ class Command(BaseCommand):
                     'device_id': device_id,
                     'sys_info': get_termux_sys_info()
                 }
+                print(data)
                 try:
-                    push_sys_info(data)
+                    ret_data = push_sys_info(data)
+                    print(ret_data)
                 except:
                     traceback.print_exc()
+                print('----------------------')
                 time.sleep(10)
