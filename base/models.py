@@ -81,48 +81,48 @@ class 定时任务(抽象定时任务):
         # 先调用父类的save方法，确保update_time有值
         super().save(*args, **kwargs)
 
-        try:
-            # 解析数据字段
-            data_dict = self.数据 or {}
-            data_records = data_dict.get("数据记录", [])
+        # try:
+        #     # 解析数据字段
+        #     data_dict = self.数据 or {}
+        #     data_records = data_dict.get("数据记录", [])
 
-            # 调用独立的筛选函数
-            newer_records = filter_records_by_time(
-                data_records=data_records,
-                update_time=self.上一次推送时间,
-            )
+        #     # 调用独立的筛选函数
+        #     newer_records = filter_records_by_time(
+        #         data_records=data_records,
+        #         update_time=self.上一次推送时间,
+        #     )
 
-            self.上一次推送时间 = timezone.now()
-            super().save(update_fields=['上一次推送时间'], *args, **kwargs)
+        #     self.上一次推送时间 = timezone.now()
+        #     super().save(update_fields=['上一次推送时间'], *args, **kwargs)
 
-            if newer_records:
-                post_data = {
-                    'name': self.名称,
-                    'data_list': newer_records,
-                    # 'device_id': '1234',
-                    'device_id': self.当前设备串口号(),
-                }
-                # print(post_data)
+        #     if newer_records:
+        #         post_data = {
+        #             'name': self.名称,
+        #             'data_list': newer_records,
+        #             # 'device_id': '1234',
+        #             'device_id': self.当前设备串口号(),
+        #         }
+        #         # print(post_data)
 
-                future = THREAD_POOL.submit(push_task_data, post_data)
+        #         future = THREAD_POOL.submit(push_task_data, post_data)
 
-                def task_callback(fut):
-                    try:
-                        fut.result()  # 触发异常
-                    except Exception as e:
-                        print(f"推送任务执行失败: {e}", exc_info=True)
+        #         def task_callback(fut):
+        #             try:
+        #                 fut.result()  # 触发异常
+        #             except Exception as e:
+        #                 print(f"推送任务执行失败: {e}", exc_info=True)
 
-                future.add_done_callback(task_callback)
+        #         future.add_done_callback(task_callback)
 
-            # push_task_data(post_data)
-            # 打印结果
-            print("===== 使用Pandas筛选出的晚于update_time的记录 =====")
-            print(len(newer_records))
-            # print(newer_records)
+        #     # push_task_data(post_data)
+        #     # 打印结果
+        #     print("===== 使用Pandas筛选出的晚于update_time的记录 =====")
+        #     print(len(newer_records))
+        #     # print(newer_records)
 
-        except Exception as e:
-            traceback.print_exc()
-            print(f"处理数据出错: {e}")
+        # except Exception as e:
+        #     traceback.print_exc()
+        #     print(f"处理数据出错: {e}")
 
 
     @classmethod

@@ -9,6 +9,6 @@ class BaseConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'base'
 
-    def ready(self):
-        atexit.register(shutdown_thread_pool)
+    # def ready(self):
+    #     atexit.register(shutdown_thread_pool)
 
