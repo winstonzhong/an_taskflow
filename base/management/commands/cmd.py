@@ -10,6 +10,7 @@ from django.core.management.base import BaseCommand
 
 
 # from my_robot.base.models import 手机设备
+
 from base.models import 定时任务
 
 from adb_tools import tool_xpath
@@ -34,6 +35,7 @@ from adb_tools import tool_xpath
 
 # def change_suffix(url, suffix):
 #     return url.rsplit(".", 1)[0] + "." + suffix
+
 
 
 def set_file(content, to_url):
@@ -154,6 +156,7 @@ class Command(BaseCommand):
         )
 
         parser.add_argument("--排除关键词", nargs="?", default="游戏", type=str)
+        parser.add_argument("--心跳上报", action="store_true", default=False)
 
     def handle(self, *args, **options):
         定时任务.IP_PORT = options.get("ip_port")
@@ -244,3 +247,29 @@ class Command(BaseCommand):
             except KeyboardInterrupt:
                 pass
             return
+
+        if options('心跳上报'):
+            import time
+            import traceback
+            from tool_sys_info import get_termux_sys_info
+            from commons.external_api import push_sys_info
+            from adb_tools.tool_xpath import SteadyDevice
+
+            device_id = ''
+
+            device = SteadyDevice.from_ip_port(
+                    定时任务.IP_PORT,
+                )
+            if device is not None:
+                device_id = device.adb.serialno
+
+            while 1:
+                data = {
+                    'device_id': device_id,
+                    'sys_info': get_termux_sys_info()
+                }
+                try:
+                    push_sys_info(data)
+                except:
+                    traceback.print_exc()
+                time.sleep(10)
