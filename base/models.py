@@ -63,7 +63,6 @@ class 定时任务(抽象定时任务):
     )
 
     @classmethod
-    @functools.lru_cache(maxsize=None)
     def 当前设备(cls):
         return SteadyDevice.from_ip_port(
                     定时任务.IP_PORT,
