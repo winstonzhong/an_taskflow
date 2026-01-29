@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 截图+控制交互演示</title>
+    <!-- 引入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 配置 Tailwind 自定义颜色和工具类 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg1: '#1a1a2e',
+                        darkBg2: '#16213e',
+                        primary: '#00d4ff',
+                        primaryDark: '#0099cc',
+                        success: '#4ade80',
+                        warning: '#fbbf24',
+                        danger: '#ef4444',
+                        info: '#60a5fa',
+                        cardBg: 'rgba(255, 255, 255, 0.05)',
+                        cardBgHover: 'rgba(255, 255, 255, 0.1)',
+                        borderLight: 'rgba(255, 255, 255, 0.1)',
+                        borderPrimary: 'rgba(0, 212, 255, 0.5)',
+                        borderPrimaryLight: 'rgba(0, 212, 255, 0.3)',
+                    },
+                    animation: {
+                        pulse: 'pulse 1s infinite',
+                    },
+                    keyframes: {
+                        pulse: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.3' },
+                        }
+                    },
+                    width: {
+                        // 新增自定义宽度类，替代无效的 w-70，适配手机屏幕
+                        'phone': '280px', 
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .backdrop-blur-10 {
+                backdrop-filter: blur(10px);
+            }
+            .inset-4 {
+                top: 4px;
+                right: 4px;
+                bottom: 4px;
+                left: 4px;
+            }
+            .script-active::after {
+                content: "✓";
+                position: absolute;
+                right: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: theme('colors.success');
+                font-size: 14px;
+            }
+            /* 补充手机屏幕内部容器的绝对定位工具类，确保全屏填充 */
+            .inset-0 {
+                top: 0;
+                right: 0;
+                bottom: 0;
+                left: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-darkBg1 to-darkBg2 min-h-screen text-white p-5 font-sans">
+    <div class="container max-w-7xl mx-auto">
+        <h1 class="text-center mb-8 text-2xl text-primary">🔌 WebSocket 截图+控制交互演示</h1>
+        
+        <!-- 主布局：大屏三列，小屏一列 -->
+        <div class="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-5 items-start">
+            <!-- 左侧：脚本列表 -->
+            <div class="bg-cardBg rounded-xl p-5 border border-borderLight">
+                <div class="text-sm text-white/60 mb-4 uppercase tracking-wider">脚本列表 (可多选)</div>
+                <div class="script-list flex flex-col gap-2.5" id="scriptList">
+                    <div class="script-card p-3 bg-cardBg rounded-lg cursor-pointer transition-all border border-transparent relative hover:bg-cardBgHover hover:border-borderPrimaryLight" data-script="auto_sign">
+                        <div class="script-name text-sm font-medium mb-1">📱 自动签到</div>
+                        <div class="script-desc text-xs text-white/50">自动完成每日签到任务</div>
+                    </div>
+                    <div class="script-card p-3 bg-cardBg rounded-lg cursor-pointer transition-all border border-transparent relative hover:bg-cardBgHover hover:border-borderPrimaryLight" data-script="clean_cache">
+                        <div class="script-name text-sm font-medium mb-1">🧹 清理缓存</div>
+                        <div class="script-desc text-xs text-white/50">清理应用缓存文件</div>
+                    </div>
+                    <div class="script-card p-3 bg-cardBg rounded-lg cursor-pointer transition-all border border-transparent relative hover:bg-cardBgHover hover:border-borderPrimaryLight" data-script="backup_data">
+                        <div class="script-name text-sm font-medium mb-1">💾 数据备份</div>
+                        <div class="script-desc text-xs text-white/50">备份应用数据到云端</div>
+                    </div>
+                </div>
+                
+                <div class="connection-info mt-5 p-3.5 bg-black/30 rounded-lg">
+                    <div class="info-row flex justify-between text-xs mb-2">
+                        <span class="info-label text-white/50">状态</span>
+                        <span class="info-value text-primary font-mono" id="connStatus">未连接</span>
+                    </div>
+                    <div class="info-row flex justify-between text-xs mb-2">
+                        <span class="info-label text-white/50">帧率</span>
+                        <span class="info-value text-primary font-mono" id="fpsDisplay">0 FPS</span>
+                    </div>
+                    <div class="info-row flex justify-between text-xs mb-2">
+                        <span class="info-label text-white/50">延迟</span>
+                        <span class="info-value text-primary font-mono" id="latencyDisplay">-- ms</span>
+                    </div>
+                    <button class="connect-btn w-full py-3 mt-3.5 bg-gradient-to-r from-primary to-primaryDark rounded-md text-white font-medium cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/30 disabled:bg-white/10 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none" id="connectBtn">连接服务器</button>
+                </div>
+            </div>
+            
+            <!-- 中间：手机屏幕（修复核心） -->
+            <div class="phone-container flex flex-col items-center w-full">
+                <!-- 1. 替换无效 w-70 为自定义 w-phone (280px)，确保宽度可见 -->
+                <!-- 2. 调整高度和圆角适配，确保视觉正常 -->
+                <div class="phone-frame w-phone h-[560px] bg-gray-900 rounded-[32px] border-4 border-gray-800 overflow-hidden relative shadow-2xl shadow-black/50">
+                    <!-- 3. 修复绝对定位，用 inset-4 确保填充手机边框内区域，增加 bg-black 确保背景不透明 -->
+                    <div class="phone-screen absolute inset-4 rounded-[28px] bg-black overflow-hidden">
+                        <!-- 连接状态指示 -->
+                        <div class="connection-status absolute top-2.5 right-2.5 flex items-center gap-2 z-10">
+                            <span class="fps-badge bg-black/60 px-2 py-1 rounded-full text-xs text-success hidden" id="fpsBadge">0 FPS</span>
+                            <div class="status-dot w-2 h-2 rounded-full bg-danger" id="statusDot"></div>
+                        </div>
+                        
+                        <!-- 控制结果提示 -->
+                        <div class="control-result absolute top-12 left-1/2 -translate-x-1/2 bg-black/80 px-4 py-2 rounded-full text-xs opacity-0 transition-opacity duration-300" id="controlResult"></div>
+                        
+                        <!-- 4. 截图显示：确保宽高全屏填充，移除可能的隐藏冲突，默认隐藏 -->
+                        <img class="screenshot-img absolute inset-0 w-full h-full object-cover hidden" id="screenshotImg" alt="手机屏幕">
+                        
+                        <!-- 5. 未连接状态：确保全屏居中显示，默认可见 -->
+                        <div class="no-connection absolute inset-0 flex flex-col items-center justify-center text-white/40" id="noConnection">
+                            <div class="no-connection-icon w-15 h-15 border-2 border-white/20 rounded-full mb-3.5 flex items-center justify-center text-2xl">📱</div>
+                            <div>未连接设备</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 控制按钮栏 -->
+                <div class="control-bar flex gap-2.5 mt-5 p-2.5 px-4 bg-cardBg rounded-full backdrop-blur-10">
+                    <button class="control-btn w-10 h-10 border-none bg-cardBg rounded-full text-white cursor-pointer text-lg transition-all flex items-center justify-center hover:bg-cardBgHover hover:scale-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" id="btnBack" title="返回" disabled>↩</button>
+                    <button class="control-btn w-10 h-10 border-none bg-cardBg rounded-full text-white cursor-pointer text-lg transition-all flex items-center justify-center hover:bg-cardBgHover hover:scale-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" id="btnHome" title="主页" disabled>⌂</button>
+                    <button class="control-btn w-10 h-10 border-none bg-cardBg rounded-full text-white cursor-pointer text-lg transition-all flex items-center justify-center hover:bg-cardBgHover hover:scale-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" id="btnRecent" title="多任务" disabled>▢</button>
+                    <div class="w-0.5 h-6 bg-white/20 mx-1.25"></div>
+                    <button class="control-btn w-10 h-10 border-none bg-cardBg rounded-full text-white cursor-pointer text-lg transition-all flex items-center justify-center hover:bg-cardBgHover hover:scale-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" id="btnScreenshot" title="截图" disabled>📷</button>
+                </div>
+            </div>
+            
+            <!-- 右侧：日志 -->
+            <div class="bg-cardBg rounded-xl p-5 border border-borderLight">
+                <div class="text-sm text-white/60 mb-4 uppercase tracking-wider">执行日志</div>
+                <div class="log-container h-[300px] overflow-y-auto font-mono text-xs leading-relaxed" id="logContainer">
+                    <div class="log-entry py-1 border-b border-white/5">
+                        <span class="log-time text-white/40 mr-2">--:--:--</span>
+                        <span class="log-info text-info">等待连接...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== WebSocket 客户端实现 ====================
+        class WebSocketClient {
+            constructor(url) {
+                this.url = url;
+                this.ws = null;
+                this.connectionState = 'disconnected';
+                this.frameCount = 0;
+                this.frameTimes = [];
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.reconnectInterval = 3000;
+                this.onScreenshot = null;
+                this.onControlResult = null;
+                this.onError = null;
+                this.onConnect = null;
+                this.onDisconnect = null;
+                this.isManualDisconnect = false; // 标记是否为主动手动断开
+            }
+            
+            connect(selectedScripts = []) {
+                if (this.ws?.readyState === WebSocket.OPEN) return;
+                
+                // 主动断开后重新连接，重置手动断开标记
+                this.isManualDisconnect = false;
+                this.connectionState = 'connecting';
+                this.updateStatus();
+                
+                try {
+                    this.ws = new WebSocket(this.url);
+                    
+                    this.ws.onopen = () => {
+                        console.log('[WebSocket] 连接成功');
+                        this.connectionState = 'connected';
+                        this.reconnectAttempts = 0;
+                        this.updateStatus();
+                        
+                        // 连接成功后发送选中的脚本信息
+                        if (selectedScripts.length > 0) {
+                            this.sendSelectedScripts(selectedScripts);
+                        }
+                        
+                        this.onConnect?.();
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        if (event.data instanceof Blob) {
+                            this.handleScreenshot(event.data);
+                        } else if (event.data instanceof ArrayBuffer) {
+                            const blob = new Blob([event.data], { type: 'image/jpeg' });
+                            this.handleScreenshot(blob);
+                        } else if (typeof event.data === 'string') {
+                            this.handleTextMessage(event.data);
+                        }
+                    };
+                    
+                    this.ws.onclose = () => {
+                        console.log('[WebSocket] 连接关闭');
+                        this.connectionState = 'disconnected';
+                        this.updateStatus();
+                        this.onDisconnect?.();
+                        this.ws = null;
+                        
+                        // 仅当非手动断开时，才执行自动重连
+                        if (!this.isManualDisconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
+                            this.reconnectAttempts++;
+                            log(`尝试第${this.reconnectAttempts}次重连...`, 'warn');
+                            setTimeout(() => this.connect(), this.reconnectInterval);
+                        }
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        console.error('[WebSocket] 错误:', error);
+                        this.connectionState = 'error';
+                        this.updateStatus();
+                        this.onError?.(error);
+                    };
+                } catch (err) {
+                    console.error('[WebSocket] 创建连接失败:', err);
+                    this.connectionState = 'error';
+                    this.updateStatus();
+                }
+            }
+            
+            // 发送选中的脚本信息到服务器
+            sendSelectedScripts(scripts) {
+                if (this.ws?.readyState !== WebSocket.OPEN) {
+                    log('连接未就绪，无法发送脚本选择信息', 'error');
+                    return false;
+                }
+                
+                const msg = {
+                    type: 'selected_scripts',
+                    scripts: scripts,
+                    timestamp: Date.now(),
+                    "key":"target_fps","value":15
+                };
+
+
+                // const msg = {"type":"client_config","key":"target_fps","value":15}
+                this.ws.send(JSON.stringify(msg));
+                log(`发送选中的脚本: ${scripts.join(', ')}`, 'info');
+                return true;
+            }
+            
+            disconnect() {
+                if (this.ws) {
+                    // 标记为手动断开，阻止后续自动重连
+                    this.isManualDisconnect = true;
+                    this.ws.close();
+                    this.ws = null;
+                }
+            }
+            
+            handleScreenshot(blob) {
+                // 计算FPS
+                const now = Date.now();
+                this.frameTimes.push(now);
+                this.frameTimes = this.frameTimes.filter(t => now - t < 1000);
+                this.frameCount++;
+                
+                // 更新FPS显示
+                const fps = this.frameTimes.length;
+                document.getElementById('fpsBadge').textContent = `${fps} FPS`;
+                document.getElementById('fpsDisplay').textContent = `${fps} FPS`;
+                
+                // 回调显示截图
+                this.onScreenshot?.(blob);
+                
+                // 发送ack
+                this.sendScreenshotAck();
+            }
+            
+            sendScreenshotAck() {
+                if (this.ws?.readyState === WebSocket.OPEN) {
+                    const ack = {
+                        type: 'screenshot_ack',
+                        timestamp: Date.now()
+                    };
+                    this.ws.send(JSON.stringify(ack));
+                }
+            }
+            
+            handleTextMessage(data) {
+                try {
+                    const msg = JSON.parse(data);
+                    
+                    switch (msg.type) {
+                        case 'control_result':
+                            log(`控制结果: ${msg.action} - ${msg.status}`, msg.status === 'success' ? 'success' : 'error');
+                            this.onControlResult?.(msg);
+                            break;
+                        case 'error':
+                            log(`错误: ${msg.message}`, 'error');
+                            break;
+                    }
+                } catch (e) {
+                    console.error('[WebSocket] 解析消息失败:', e);
+                }
+            }
+            
+            sendControl(action, params = {}) {
+                if (this.ws?.readyState !== WebSocket.OPEN) {
+                    log('连接未就绪，无法发送控制指令', 'error');
+                    return false;
+                }
+                
+                const msg = {
+                    type: 'control',
+                    action,
+                    params
+                };
+                
+                this.ws.send(JSON.stringify(msg));
+                log(`发送控制指令: ${action}`, 'info');
+                return true;
+            }
+            
+            updateStatus() {
+                const statusEl = document.getElementById('connStatus');
+                const dotEl = document.getElementById('statusDot');
+                const fpsBadge = document.getElementById('fpsBadge');
+                const btn = document.getElementById('connectBtn');
+                
+                // 重置状态点样式
+                dotEl.className = 'status-dot w-2 h-2 rounded-full';
+                
+                switch (this.connectionState) {
+                    case 'connected':
+                        statusEl.textContent = '已连接';
+                        statusEl.style.color = '#4ade80';
+                        dotEl.classList.add('bg-success');
+                        fpsBadge.classList.remove('hidden');
+                        btn.textContent = '断开连接';
+                        btn.disabled = false;
+                        enableControls(true);
+                        break;
+                    case 'connecting':
+                        statusEl.textContent = '连接中...';
+                        statusEl.style.color = '#fbbf24';
+                        dotEl.classList.add('bg-warning', 'animate-pulse');
+                        fpsBadge.classList.add('hidden');
+                        btn.textContent = '连接中...';
+                        btn.disabled = true;
+                        enableControls(false);
+                        break;
+                    case 'error':
+                        statusEl.textContent = '连接错误';
+                        statusEl.style.color = '#ef4444';
+                        dotEl.classList.add('bg-danger');
+                        fpsBadge.classList.add('hidden');
+                        btn.textContent = '重新连接';
+                        btn.disabled = false;
+                        enableControls(false);
+                        break;
+                    default:
+                        statusEl.textContent = '未连接';
+                        statusEl.style.color = 'rgba(255,255,255,0.5)';
+                        dotEl.classList.add('bg-danger');
+                        fpsBadge.classList.add('hidden');
+                        btn.textContent = '连接服务器';
+                        btn.disabled = false;
+                        enableControls(false);
+                }
+            }
+        }
+        
+        // ==================== 日志功能 ====================
+        function log(message, type = 'info') {
+            const container = document.getElementById('logContainer');
+            const now = new Date();
+            const time = now.toTimeString().split(' ')[0];
+            
+            const entry = document.createElement('div');
+            entry.className = 'log-entry py-1 border-b border-white/5';
+            entry.innerHTML = `
+                <span class="log-time text-white/40 mr-2">${time}</span>
+                <span class="log-${type} text-${type === 'info' ? 'info' : type === 'success' ? 'success' : type === 'warn' ? 'warning' : 'danger'}">${message}</span>
+            `;
+            
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function enableControls(enabled) {
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.disabled = !enabled;
+            });
+        }
+        
+        // 获取选中的脚本列表
+        function getSelectedScripts() {
+            const selected = [];
+            document.querySelectorAll('.script-card.active').forEach(card => {
+                selected.push(card.dataset.script);
+            });
+            return selected;
+        }
+        
+        // ==================== 初始化 ====================
+        const wsClient = new WebSocketClient('ws://localhost:8765');
+        
+        // 截图处理（确保隐藏/显示逻辑正常）
+        let currentBlobUrl = null;
+        wsClient.onScreenshot = (blob) => {
+            const img = document.getElementById('screenshotImg');
+            const noConn = document.getElementById('noConnection');
+            
+            // 释放之前的URL
+            if (currentBlobUrl) {
+                URL.revokeObjectURL(currentBlobUrl);
+            }
+            
+            // 创建新URL并切换显示状态
+            currentBlobUrl = URL.createObjectURL(blob);
+            img.src = currentBlobUrl;
+            img.classList.remove('hidden'); // 显示截图
+            noConn.classList.add('hidden'); // 隐藏未连接提示
+        };
+        
+        // 控制结果处理
+        wsClient.onControlResult = (result) => {
+            const el = document.getElementById('controlResult');
+            el.textContent = result.status === 'success' 
+                ? `✓ ${result.action}` 
+                : `✗ ${result.action}`;
+            el.classList.add('opacity-100');
+            
+            setTimeout(() => {
+                el.classList.remove('opacity-100');
+            }, 3000);
+        };
+        
+        // 连接/断开按钮
+        document.getElementById('connectBtn').addEventListener('click', () => {
+            if (wsClient.connectionState === 'connected') {
+                wsClient.disconnect();
+            } else {
+                // 获取选中的脚本并传入连接方法
+                const selectedScripts = getSelectedScripts();
+                wsClient.connect(selectedScripts);
+            }
+        });
+        
+        // 控制按钮事件
+        document.getElementById('btnBack').addEventListener('click', () => {
+            wsClient.sendControl('back');
+        });
+        
+        document.getElementById('btnHome').addEventListener('click', () => {
+            wsClient.sendControl('home');
+        });
+        
+        document.getElementById('btnRecent').addEventListener('click', () => {
+            wsClient.sendControl('recent');
+        });
+        
+        document.getElementById('btnScreenshot').addEventListener('click', () => {
+            wsClient.sendControl('screenshot');
+        });
+        
+        // 脚本卡片点击 - 支持多选
+        document.querySelectorAll('.script-card').forEach(card => {
+            card.addEventListener('click', () => {
+                // 切换选中状态
+                card.classList.toggle('active');
+                card.classList.toggle('bg-primary/10');
+                card.classList.toggle('border-borderPrimary');
+                card.classList.toggle('script-active');
+                
+                // 获取当前选中的所有脚本
+                const selectedScripts = getSelectedScripts();
+                const scriptName = card.querySelector('.script-name').textContent;
+                
+                if (card.classList.contains('active')) {
+                    log(`选中脚本: ${scriptName}`, 'info');
+                } else {
+                    log(`取消选中脚本: ${scriptName}`, 'info');
+                }
+                
+                // 如果已连接，实时发送更新后的选中脚本列表
+                if (wsClient.connectionState === 'connected') {
+                    wsClient.sendSelectedScripts(selectedScripts);
+                }
+            });
+        });
+        
+        // 页面关闭时清理
+        window.addEventListener('beforeunload', () => {
+            if (currentBlobUrl) {
+                URL.revokeObjectURL(currentBlobUrl);
+            }
+            wsClient.disconnect();
+        });
+        
+        log('页面加载完成，点击"连接服务器"开始使用', 'info');
+    </script>
+</body>
+</html>
