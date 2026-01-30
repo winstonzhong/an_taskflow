@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.shortcuts import render
 from rest_framework.views import APIView
 
 from base.models import 定时任务
@@ -168,3 +169,9 @@ class 用户知识库视图(APIView):
         更新知识库(file_binary_data)
 
         return JsonResponse(ret_data)
+
+
+
+def 控制页面(request):
+    if request.method == 'GET':
+        return render(request, 'control.html')
