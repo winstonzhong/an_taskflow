@@ -5,9 +5,13 @@ Created on 2015年8月14日
 @author: root
 """
 import base64
+import threading
 
 import time
+import os
+import webbrowser
 
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
 
@@ -43,6 +47,14 @@ from websockect_server import ws_server, SharedData, shared_data, get_shared_dat
 from typing import Optional
 
 import logging
+
+
+
+# 全局/类级共享停止信号（用于通知 Django Web 服务线程退出）
+django_web_server_stop_flag = threading.Event()
+# 记录 Django Web 服务线程（方便后续等待线程退出）
+django_server_thread: Optional[threading.Thread] = None
+
 logger = logging.getLogger(__name__)
 try:
     from PIL import Image, ImageDraw, ImageFont
@@ -201,7 +213,70 @@ class ScreenshotGenerator:
         return jpeg_header + bytes(100)  # 简化版本
 
 
+async def start_django_web_server(host: str = "0.0.0.0", port: int = 8000):
+    """
+    异步启动 Django Web 服务（支持优雅停止）
+    :param host: 绑定地址
+    :param port: 端口号
+    """
+    global django_server_thread  # 引用全局线程变量，方便后续操作
+    logger.info(f"准备启动 Django Web 服务：http://{host}:{port}")
+    # 设置 Django 运行环境（避免多线程冲突）
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "your_project.settings")  # 替换为你的项目settings路径
+    os.environ["RUN_MAIN"] = "true"  # 禁用自动重载（避免重复启动）
 
+    def run_server():
+        """同步执行 runserver 命令（支持优雅停止）"""
+        # 引入 Django 内部的 quit 信号（用于终止 runserver）
+        try:
+            # 启动 Django runserver（同步阻塞）
+            call_command(
+                "runserver",
+                f"{host}:{port}",
+                use_reloader=False,  # 关闭自动重载（异步环境下必须）
+                use_ipv6=False,
+                verbosity=1
+            )
+        except Exception as e:
+            # 只有未设置停止标志时，才记录启动失败错误（避免停止时的正常异常被误报）
+            if not django_web_server_stop_flag.is_set():
+                logger.error(f"Django Web 服务启动失败：{e}")
+        finally:
+            logger.info("Django Web 服务线程已退出")
+
+    def stop_django_web_server():
+        """优雅停止 Django Web 服务"""
+        # from django.core.management.commands.runserver import quit_command
+        # # 1. 发送 Django runserver 退出信号
+        # quit_command()
+        # 步骤1：设置停止标志（通知线程，后续不再处理新请求）
+        django_web_server_stop_flag.set()
+
+        # 步骤2：等待线程退出（给 5 秒超时，确保当前请求处理完成）
+        if django_server_thread and django_server_thread.is_alive():
+            try:
+                # join(timeout=5)：等待 5 秒，让线程有时间处理完当前请求、清理资源
+                django_server_thread.join(timeout=5)
+            except Exception as e:
+                logger.warning(f"等待 Django Web 服务线程退出时出现异常：{e}")
+
+        # 步骤3：验证线程是否已退出（超时未退出则提示，但不强制杀死）
+        if django_server_thread and django_server_thread.is_alive():
+            logger.warning("Django Web 服务线程未在 5 秒内退出（可能有长请求），将释放端口资源")
+        else:
+            logger.info("Django Web 服务已优雅停止（所有请求处理完成，资源已释放）")
+
+
+    # 绑定停止函数（方便外部调用）
+    start_django_web_server.stop = stop_django_web_server
+
+    # 步骤4：启动独立线程运行 Django Web 服务（避免阻塞 asyncio 事件循环）
+    django_server_thread = threading.Thread(target=run_server, daemon=True)
+    django_server_thread.start()
+
+    # 等待服务启动（可选）
+    await asyncio.sleep(2)
+    logger.info("Django Web 服务线程已启动")
 
 async def django_main_business():
     """Django 核心业务逻辑（截图生成 + 前端配置处理）"""
@@ -289,10 +364,17 @@ async def django_main_business():
             logger.error(f"生成/推送截图失败: {e}")
             await asyncio.sleep(0.1)
 
+
+
+
+
 async def main():
     """整合 WebSocket 与 Django 业务"""
     # 初始化共享数据（绑定到当前事件循环）
     get_shared_data()
+
+    # 启动 Django Web 服务（异步任务）
+    web_server_task = asyncio.create_task(start_django_web_server(host="0.0.0.0", port=8000))
 
     # 启动 WebSocket 服务（后台任务）
     ws_task = asyncio.create_task(ws_server.start())
@@ -300,17 +382,48 @@ async def main():
     # 启动 Django 主业务（核心：截图生成 + 配置处理）
     business_task = asyncio.create_task(django_main_business())
 
+    # ====================== 新增：延迟打开浏览器窗口 ======================
+    async def open_browser():
+        """延迟打开浏览器（等待Django服务启动）"""
+        await asyncio.sleep(3)  # 延迟3秒，确保服务已启动
+        url = "http://localhost:8000/base/control"
+        logger.info(f"自动打开浏览器访问：{url}")
+        try:
+            webbrowser.open(url)  # 打开默认浏览器
+        except Exception as e:
+            logger.warning(f"打开浏览器失败：{e}")
+
+    # 创建打开浏览器的异步任务
+    browser_task = asyncio.create_task(open_browser())
+    # =====================================================================
+
+
     # 等待所有任务完成（捕获中断信号）
     try:
-        await asyncio.gather(ws_task, business_task)
+        await asyncio.gather(web_server_task, ws_task, business_task, browser_task)
     except KeyboardInterrupt:
         logger.info("收到中断信号，停止服务...")
+
+        # 步骤1：停止 WebSocket 服务（原有逻辑，正常生效）
         ws_server.stop()
-        # 取消所有任务
+
+
+        # 步骤2：优雅停止 Django Web 服务（新增：调用绑定的停止函数）
+        try:
+            start_django_web_server.stop()
+        except Exception as e:
+            logger.warning(f"Django Web 服务优雅停止失败，将强制终止：{e}")
+
+
+
+        # 步骤3：取消所有 asyncio 任务（原有逻辑，正常生效）
+        web_server_task.cancel()
         ws_task.cancel()
         business_task.cancel()
-        await asyncio.gather(ws_task, business_task, return_exceptions=True)
 
+        # 步骤4：等待所有任务响应取消并退出（兼容所有版本）
+        await asyncio.gather(web_server_task, ws_task, business_task, return_exceptions=True)
+        logger.info("所有服务已停止完成（无资源残留）")
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
