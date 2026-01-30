@@ -374,7 +374,7 @@ async def main():
     get_shared_data()
 
     # 启动 Django Web 服务（异步任务）
-    web_server_task = asyncio.create_task(start_django_web_server(host="0.0.0.0", port=8000))
+    web_server_task = asyncio.create_task(start_django_web_server(host="0.0.0.0", port=8001))
 
     # 启动 WebSocket 服务（后台任务）
     ws_task = asyncio.create_task(ws_server.start())
@@ -386,7 +386,7 @@ async def main():
     async def open_browser():
         """延迟打开浏览器（等待Django服务启动）"""
         await asyncio.sleep(3)  # 延迟3秒，确保服务已启动
-        url = "http://localhost:8000/base/control"
+        url = "http://localhost:8001/base/control"
         logger.info(f"自动打开浏览器访问：{url}")
         try:
             webbrowser.open(url)  # 打开默认浏览器
