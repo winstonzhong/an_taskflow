@@ -19,4 +19,5 @@ db.sqlite3-journal
 */dist/
 */venv/
 *.sqlite3
+config.yml
 

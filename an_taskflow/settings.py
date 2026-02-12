@@ -18,7 +18,10 @@ import sys
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+import yaml
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 sys.path.append(str(BASE_DIR.parent / "caidao"))
 
@@ -26,6 +29,10 @@ sys.path.append(str(BASE_DIR.parent / "caidao"))
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 DB_DIR = BASE_DIR 
+
+
+with open(f"{BASE_DIR}/config/config.yml", "r", encoding="utf-8") as f:
+    CONFIGS = yaml.load(f.read(), yaml.Loader)
 
 # DB_DIR = BASE_DIR.parent / 'db' / BASE_DIR.name
 
@@ -55,6 +62,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # 'corsheaders',
     'base',
+    # 'core',
     # 'weixin',
 ]
 

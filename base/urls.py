@@ -5,7 +5,8 @@ from .views import (
     页面操作视图,
     用户配置视图,
     用户知识库视图,
-    控制页面
+    控制页面,
+    更新sn
 )
 
 
@@ -17,4 +18,5 @@ urlpatterns = [
     path("user_knowledge", 用户知识库视图.as_view()),
 
     path("control", 控制页面),
+    path("update_sn", 更新sn.as_view()),
 ]

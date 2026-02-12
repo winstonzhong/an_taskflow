@@ -4,14 +4,17 @@ import functools
 
 import threading
 
-from django.db import models
+from asgiref.sync import sync_to_async
+from django.db import models, reset_queries
 from django.utils import timezone
 
 from caidao_tools.django.abstract import (
     抽象定时任务,
-)
+    BaseModel)
 from commons.external_api import push_task_data, push_sys_info
+from commons.helper_db import retry_db_concurrency
 from commons.utils import filter_records_by_time
+
 
 from helper_jfp import JobFilePersistence
 
@@ -34,6 +37,9 @@ import time
 import pandas
 # Create your models here.
 from tool_sys_info import get_termux_sys_info
+from django.db.models import Max
+
+KEY_SN = 'sn'
 
 
 class 定时任务(抽象定时任务):
@@ -266,3 +272,79 @@ class 定时任务(抽象定时任务):
             self.数据['user_config'].setdefault('global', dict())
             self.数据['user_config']['global'][key] = value
         self.save(update_fields=["数据"])
+
+
+    @classmethod
+    def 获取所有技能(cls):
+        objs = cls.objects.filter(group_name__isnull=False).values('group_name').annotate(
+            是否激活=Max('激活'),
+            描述=Max('任务描述')
+        )
+        return list(objs)
+
+
+    @classmethod
+    @retry_db_concurrency()
+    def 更新技能激活状态(cls, group_name_list, is_active):
+        objs = cls.objects.filter(group_name__in=group_name_list)
+        objs.update(激活=is_active)
+        return objs
+
+    @classmethod
+    def test(cls, bin_data, **kwargs):
+        import asyncio
+        reset_queries(**kwargs)
+
+        cls.动态初始化(**kwargs)
+        # cls.心跳上传(**kwargs)
+        print('kwargs', kwargs)
+        q = cls.得到所有待执行的任务(**kwargs).order_by("-优先级", "update_time")
+        print('q', q)
+        max_priority = 0
+        for obj in q.iterator():
+            print('obj', obj)
+
+        x = asyncio.run(send_screenshot(bin_data))
+        print('x', x)
+        time.sleep(2)
+
+
+async def send_screenshot(bin_data):
+    import asyncio
+    from commons.websocket_server import get_shared_data
+    shared_data = get_shared_data()
+    data = {
+                'type': 'screenshot_data',
+                'data': bin_data,
+                'frame_count': 1,
+                'timestamp': asyncio.get_event_loop().time()
+            }
+    print(data)
+    await shared_data.django_to_ws_queue.put(data)
+    return 'aaa'
+
+
+
+
+class 配置表(models.Model):
+    key = models.CharField(max_length=50, default='', unique=True)
+    value = models.CharField(max_length=255, null=True, blank=True)
+
+    @classmethod
+    def 获取sn(cls):
+        obj = cls.objects.filter(key=KEY_SN).first()
+        return obj.value if obj else None
+
+    @classmethod
+    async def 异步获取sn(cls):
+        obj = await cls.objects.filter(key=KEY_SN).afirst()
+        return obj.value if obj else None
+
+    @classmethod
+    def 更新sn(cls, value):
+        print('value', value)
+        obj, _ = cls.objects.get_or_create(key=KEY_SN)
+        print('obj', obj)
+        obj.value = value
+        obj.save()
+

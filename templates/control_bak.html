@@ -90,13 +90,6 @@
                 bottom: 0;
                 left: 0;
             }
-            /* 机器人状态按钮样式 */
-            .robot-btn-pending::after {
-                content: "⟳";
-                margin-left: 4px;
-                font-size: 12px;
-                animation: spin 1s linear infinite;
-            }
         }
     </style>
 </head>
@@ -134,9 +127,6 @@
                         <span class="info-value text-primary font-mono" id="latencyDisplay">-- ms</span>
                     </div>
                     <button class="connect-btn w-full py-3 mt-3.5 bg-gradient-to-r from-primary to-primaryDark rounded-md text-white font-medium cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/30 disabled:bg-white/10 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none" id="connectBtn">连接服务器</button>
-
-                    <!-- 新增：启动/停止机器人按钮 -->
-                    <button class="robot-btn w-full py-3 mt-3 bg-gradient-to-r from-success to-green-600 rounded-md text-white font-medium cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-success/30 disabled:bg-white/10 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none" id="robotBtn" disabled>启动机器人</button>
                 </div>
             </div>
 
@@ -237,10 +227,8 @@
                 this.onConnect = null;
                 this.onDisconnect = null;
                 this.onScriptStatusUpdate = null; // 新增：脚本状态更新回调
-                this.onRobotStatusUpdate = null; // 新增：机器人状态更新回调
                 this.isManualDisconnect = false; // 标记是否为主动手动断开
-                this.wsName = 'front';
-                this.robotState = 'stopped'; // 新增：机器人状态 stopped/running/starting/stopping
+                this.wsName = 'front'
             }
 
             connect() {
@@ -266,8 +254,7 @@
 
                         // 连接成功后发送全量脚本状态数据
                         // this.sendFullScriptStatus();
-                        // 连接成功后不自动启动机器人，由用户手动触发
-                        // this.sendStartRobotCmd()
+                        this.sendStartRobotCmd()
 
                         this.onConnect?.();
                     };
@@ -286,10 +273,8 @@
                     this.ws.onclose = () => {
                         console.log('[WebSocket] 连接关闭');
                         this.connectionState = 'disconnected';
-                        this.robotState = 'stopped'; // 连接断开重置机器人状态
                         this.updateStatus();
                         this.onDisconnect?.();
-                        this.onRobotStatusUpdate?.(this.robotState); // 通知机器人状态更新
                         this.ws = null;
 
                         // 清除等待状态
@@ -322,80 +307,20 @@
                 }
             }
 
-            // 新增：更新机器人状态
-            updateRobotState(newState) {
-                this.robotState = newState;
-                this.onRobotStatusUpdate?.(newState);
-                // 更新按钮状态
-                this.updateRobotBtnStatus();
-            }
-
-            // 新增：更新机器人按钮显示状态
-            updateRobotBtnStatus() {
-                const robotBtn = document.getElementById('robotBtn');
-                if (!robotBtn) return;
-
-                // 重置按钮样式和状态
-                robotBtn.classList.remove('from-success', 'to-green-600', 'from-danger', 'to-red-600', 'from-warning', 'to-amber-600', 'robot-btn-pending');
-                robotBtn.disabled = this.connectionState !== 'connected';
-
-                switch (this.robotState) {
-                    case 'starting':
-                        robotBtn.textContent = '启动中';
-                        robotBtn.classList.add('from-warning', 'to-amber-600', 'robot-btn-pending');
-                        robotBtn.disabled = true;
-                        break;
-                    case 'running':
-                        robotBtn.textContent = '停止机器人';
-                        robotBtn.classList.add('from-danger', 'to-red-600');
-                        break;
-                    case 'stopping':
-                        robotBtn.textContent = '停止中';
-                        robotBtn.classList.add('from-warning', 'to-amber-600', 'robot-btn-pending');
-                        robotBtn.disabled = true;
-                        break;
-                    case 'stopped':
-                    default:
-                        robotBtn.textContent = '启动机器人';
-                        robotBtn.classList.add('from-success', 'to-green-600');
-                        break;
-                }
-            }
-
-            sendStartRobotCmd() {
-                if (this.ws?.readyState !== WebSocket.OPEN) {
-                    log('连接未就绪，无法发送启动机器人指令', 'error');
-                    return false;
-                }
-
-                // 设置机器人状态为启动中
-                this.updateRobotState('starting');
-
+            sendStartRobotCmd(){
                 const msg = {
                     type: 'start_robot',
                     robot_id: 1
-                };
+                }
                 this.ws.send(JSON.stringify(msg));
-                log('发送启动机器人指令', 'info');
-                return true;
             }
 
-            sendStopRobotCmd() {
-                if (this.ws?.readyState !== WebSocket.OPEN) {
-                    log('连接未就绪，无法发送停止机器人指令', 'error');
-                    return false;
-                }
-
-                // 设置机器人状态为停止中
-                this.updateRobotState('stopping');
-
+            sendStopRobotCmd(){
                 const msg = {
                     type: 'stop_robot',
                     robot_id: 1
-                };
+                }
                 this.ws.send(JSON.stringify(msg));
-                log('发送停止机器人指令', 'info');
-                return true;
             }
 
             // 连接时发送全量脚本状态（包含所有脚本的选中/未选中列表）
@@ -508,10 +433,7 @@
 
             disconnect() {
                 if (this.ws) {
-                    // 如果机器人正在运行，先发送停止指令
-                    if (this.robotState === 'running' || this.robotState === 'starting') {
-                        this.sendStopRobotCmd();
-                    }
+                    this.sendStopRobotCmd()
                     // 标记为手动断开，阻止后续自动重连
                     this.isManualDisconnect = true;
                     this.ws.close();
@@ -519,8 +441,6 @@
                 }
                 // 清除等待状态
                 setAllScriptsPending(false);
-                // 重置机器人状态
-                // this.updateRobotState('stopped');
             }
 
             handleScreenshot(blob) {
@@ -539,7 +459,7 @@
                 this.onScreenshot?.(blob);
 
                 // 发送ack
-                // this.sendScreenshotAck();
+                this.sendScreenshotAck();
             }
 
             sendScreenshotAck() {
@@ -567,21 +487,9 @@
                             this.clearScriptsPending(updatedScriptNames);
                             this.onScriptStatusUpdate?.(msg.group_status_data); // 通知页面更新UI
                             break;
-                        // 新增：处理机器人启动/停止结果
-                        case 'robot_status':
-                            log(`机器人状态更新: ${msg.state}`, msg.state === 'running' ? 'success' : 'info');
-                            if (msg.success === true){
-                                this.updateRobotState(msg.state); // 更新机器人状态
-                            }
-
-                            break;
                         case 'error':
                             log(`错误: ${msg.message}`, 'error');
                             setAllScriptsPending(false); // 出错时也清除等待状态
-                            // 出错时重置机器人状态
-                            if (msg.type === 'robot_error') {
-                                this.updateRobotState('stopped');
-                            }
                             break;
                     }
                 } catch (e) {
@@ -612,7 +520,6 @@
                 const dotEl = document.getElementById('statusDot');
                 const fpsBadge = document.getElementById('fpsBadge');
                 const btn = document.getElementById('connectBtn');
-                const robotBtn = document.getElementById('robotBtn');
 
                 // 重置状态点样式
                 dotEl.className = 'status-dot w-2 h-2 rounded-full';
@@ -626,8 +533,6 @@
                         btn.textContent = '断开连接';
                         btn.disabled = false;
                         enableControls(true);
-                        // 连接成功后启用机器人按钮
-                        robotBtn.disabled = false;
                         break;
                     case 'connecting':
                         statusEl.textContent = '连接中...';
@@ -637,7 +542,6 @@
                         btn.textContent = '连接中...';
                         btn.disabled = true;
                         enableControls(false);
-                        robotBtn.disabled = true;
                         break;
                     case 'error':
                         statusEl.textContent = '连接错误';
@@ -647,7 +551,6 @@
                         btn.textContent = '重新连接';
                         btn.disabled = false;
                         enableControls(false);
-                        robotBtn.disabled = true;
                         break;
                     default:
                         statusEl.textContent = '未连接';
@@ -657,11 +560,7 @@
                         btn.textContent = '连接服务器';
                         btn.disabled = false;
                         enableControls(false);
-                        robotBtn.disabled = true;
                 }
-
-                // 更新机器人按钮状态
-                this.updateRobotBtnStatus();
             }
         }
 
@@ -744,28 +643,6 @@
             updateScriptCardStatus(scriptsStatus);
         };
 
-        // 新增：处理机器人状态更新
-        wsClient.onRobotStatusUpdate = (state) => {
-            const robotBtn = document.getElementById('robotBtn');
-            if (!robotBtn) return;
-
-            // 根据机器人状态更新按钮显示
-            switch (state) {
-                case 'running':
-                    log('机器人已启动', 'success');
-                    break;
-                case 'stopped':
-                    log('机器人已停止', 'info');
-                    break;
-                case 'starting':
-                    log('机器人启动中...', 'warn');
-                    break;
-                case 'stopping':
-                    log('机器人停止中...', 'warn');
-                    break;
-            }
-        };
-
         // 连接/断开按钮
         document.getElementById('connectBtn').addEventListener('click', () => {
             if (wsClient.connectionState === 'connected') {
@@ -773,20 +650,6 @@
             } else {
                 wsClient.connect();
             }
-        });
-
-        // 新增：机器人启动/停止按钮事件
-        document.getElementById('robotBtn').addEventListener('click', () => {
-            const currentState = wsClient.robotState;
-
-            if (currentState === 'stopped') {
-                // 停止状态 -> 启动
-                wsClient.sendStartRobotCmd();
-            } else if (currentState === 'running') {
-                // 运行状态 -> 停止
-                wsClient.sendStopRobotCmd();
-            }
-            // 忽略 starting/stopping 状态的点击
         });
 
         // 控制按钮事件
