@@ -5,9 +5,9 @@ import pandas
 
 from django.utils.safestring import mark_safe
 from base.models import (
-    定时任务,
+    定时任务, 配置表
 )
-from caidao_tools.django.base_admin import 抽象定时任务Admin
+from caidao_tools.django.base_admin import 抽象定时任务Admin, BaseAdmin
 from urllib.parse import urlencode
 
 from django.db.models import F
@@ -29,6 +29,15 @@ from django.http.response import HttpResponseRedirect, HttpResponse
 #     def get_actions(self, request):
 #         return admin.ModelAdmin.get_actions(self, request)
 
+
+
+@admin.register(配置表)
+class 配置表Admin(BaseAdmin):
+    list_display = [
+        'id',
+        'key',
+        'value'
+        ]
 
 @admin.register(定时任务)
 class 定时任务Admin(抽象定时任务Admin):

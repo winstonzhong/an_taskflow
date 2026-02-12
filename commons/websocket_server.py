@@ -1,304 +1,271 @@
-#!/usr/bin/env python3
 """
-单通道WebSocket截图+控制交互服务端
-基于单WebSocket通道实现截图数据推送与控制指令交互
+WebSocket 服务器模块
+负责与前端建立 WebSocket 连接，并与 Worker 通过队列进行数据交换
 """
 
 import asyncio
+import websockets
 import json
+import threading
 import time
-import logging
-from typing import Optional, Set
-from dataclasses import dataclass
-from websockets.server import serve, WebSocketServerProtocol
-from websockets.exceptions import ConnectionClosed
-# 导入外部的shared_data单例
+import queue  # 添加标准库queue
+from typing import Set, Dict, Any
 
-# 配置日志
-# from commons.helper_shared_data import shared_data
-
-
-
-
-
-
-
-
-import queue
-from threading import Lock
-
-class SharedData:
-    """线程安全的共享数据类（单例），存储双向通信队列"""
-    _instance = None
-    _lock = Lock()  # 单例锁
-
-    def __new__(cls):
-        """单例模式：确保所有线程共享同一个实例"""
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = super().__new__(cls)
-                    # 初始化线程安全队列（核心替换：asyncio.Queue → queue.Queue）
-                    cls._instance.ws_to_django_queue = queue.Queue(maxsize=1000)  # WS → Worker 队列
-                    cls._instance.django_to_ws_queue = queue.Queue(maxsize=1000)  # Worker → WS 队列
-        return cls._instance
-
-    # -------------- WS → Worker 队列操作 --------------
-    def put_ws_to_django(self, data):
-        """WS线程：向Worker推送数据（非阻塞，队列满则抛异常）"""
-        try:
-            self.ws_to_django_queue.put_nowait(data)
-        except queue.Full:
-            print(f"ws_to_django_queue 队列已满，丢弃数据: {data}")
-
-    def get_ws_to_django(self, timeout=None):
-        """Worker线程：从WS获取数据（可设置超时，避免永久阻塞）"""
-        try:
-            return self.ws_to_django_queue.get(timeout=timeout)
-        except queue.Empty:
-            return None
-
-    # -------------- Worker → WS 队列操作 --------------
-    def put_django_to_ws(self, data):
-        """Worker线程：向WS推送数据"""
-        try:
-            self.django_to_ws_queue.put_nowait(data)
-        except queue.Full:
-            print(f"django_to_ws_queue 队列已满，丢弃数据: {data}")
-
-    def get_django_to_ws(self, timeout=None):
-        """WS线程：从Worker获取数据"""
-        try:
-            return self.django_to_ws_queue.get(timeout=timeout)
-        except queue.Empty:
-            return None
-
-# 全局单例实例（所有线程共享）
-shared_data = SharedData()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-
-@dataclass
-class ServerConfig:
-    """服务端配置"""
-    host: str = "localhost"
-    port: int = 8765
-    target_fps: float = 10.0  # 默认10fps
-    screenshot_width: int = 360
-    screenshot_height: int = 720
+from commons.queue_manager import get_queue_manager
 
 
 class WebSocketServer:
-    """WebSocket服务端"""
+    """
+    WebSocket 服务器
+    - 接收前端消息 -> 放入 ws_to_worker 队列
+    - 监听 worker_to_ws 队列 -> 推送给前端
+    """
 
-    def __init__(self, config: ServerConfig = None):
-        self.config = config or ServerConfig()
-        self.clients: Set[WebSocketServerProtocol] = set()
+    def __init__(self, host: str = "0.0.0.0", port: int = 8765):
+        self.host = host
+        self.port = port
+        self.queue_manager = get_queue_manager()
+
+        # 存储所有连接的客户端 {websocket: client_id}
+        self.clients: Dict[websockets.WebSocketServerProtocol, str] = {}
+        self.clients_lock = threading.Lock()
+
+        self.server = None
+        self.loop = None
+        self.thread = None
         self.running = False
-        self.frame_interval = 1.0 / self.config.target_fps
-        self.django_screenshot_task = None  # Django 消息消费任务
 
-    async def handle_client(self, websocket: WebSocketServerProtocol, path: str):
-        """处理客户端连接"""
-        client_id = id(websocket)
-        logger.info(f"客户端 {client_id} 已连接")
-        self.clients.add(websocket)
+        # 使用线程安全的 queue.Queue 替代 asyncio.Queue
+        # 用于从同步线程传递数据到异步线程
+        self.to_ws_queue = queue.Queue()
+
+    def generate_client_id(self) -> str:
+        """生成唯一客户端ID"""
+        import uuid
+        return str(uuid.uuid4())[:8]
+
+    async def register_client(self, websocket: websockets.WebSocketServerProtocol):
+        """注册新客户端"""
+        client_id = self.generate_client_id()
+        with self.clients_lock:
+            self.clients[websocket] = client_id
+        print(f"[WebSocket] 客户端 {client_id} 已连接，当前连接数: {len(self.clients)}")
+        return client_id
+
+    async def unregister_client(self, websocket: websockets.WebSocketServerProtocol):
+        """注销客户端"""
+        with self.clients_lock:
+            client_id = self.clients.pop(websocket, "unknown")
+        print(f"[WebSocket] 客户端 {client_id} 已断开，当前连接数: {len(self.clients)}")
+
+    async def handle_client(self, websocket: websockets.WebSocketServerProtocol, path: str):
+        """
+        处理单个客户端连接
+        """
+        client_id = await self.register_client(websocket)
 
         try:
-            # 仅处理客户端消息（转发给Django），移除截图任务
             async for message in websocket:
-                await self._handle_message(websocket, message)
+                try:
+                    # 解析前端消息
+                    data = json.loads(message)
+                    print(f"[WebSocket] 收到来自 {client_id} 的消息: {data}")
 
-        except ConnectionClosed:
-            logger.info(f"客户端 {client_id} 断开连接")
-        except Exception as e:
-            logger.error(f"处理客户端 {client_id} 时出错: {e}")
+                    # 添加客户端标识，以便Worker知道回复给谁
+                    data["_client_id"] = client_id
+                    data["_websocket_id"] = id(websocket)
+
+                    # 放入 ws_to_worker 队列，供 Worker 处理
+                    success = self.queue_manager.put_to_worker(data, block=False)
+                    if not success:
+                        error_msg = {"type": "error", "message": "服务器繁忙，请稍后重试"}
+                        await websocket.send(json.dumps(error_msg))
+
+                except json.JSONDecodeError:
+                    error_msg = {"type": "error", "message": "无效的JSON格式"}
+                    await websocket.send(json.dumps(error_msg))
+                except Exception as e:
+                    print(f"[WebSocket] 处理消息时出错: {e}")
+                    error_msg = {"type": "error", "message": str(e)}
+                    await websocket.send(json.dumps(error_msg))
+
+        except websockets.exceptions.ConnectionClosed:
+            print(f"[WebSocket] 客户端 {client_id} 连接关闭")
         finally:
-            self.clients.discard(websocket)
-            logger.info(f"客户端 {client_id} 资源已清理")
+            await self.unregister_client(websocket)
 
-    async def _handle_message(self, websocket: WebSocketServerProtocol, message):
-        """处理客户端消息 - 转发前端配置到ws_to_django_queue"""
-        try:
-            print('message', message)
-            logger.info(f"message", message)
-            client_id = id(websocket)
-            # 1. 处理二进制消息（前端不应发送，直接忽略）
-            if isinstance(message, bytes):
-                logger.warning(f"客户端 {client_id} 发送意外二进制消息，长度: {len(message)}")
-                await self._send_error(websocket, "请勿发送二进制消息")
-                return
+    def sync_queue_reader(self):
+        """
+        同步线程：持续从 worker_to_ws 队列读取数据，放入 self.to_ws_queue
+        这是连接同步队列和异步WebSocket的桥梁
+        """
+        print("[WebSocket] 启动队列读取线程...")
 
-            # 2. 解析JSON消息（前端配置/指令）
-            try:
-                data = json.loads(message)
-            except json.JSONDecodeError as e:
-                logger.error(f"客户端 {client_id} JSON解析失败: {e}")
-                await self._send_error(websocket, "消息格式错误，应为有效JSON")
-                return
-
-            # 3. 转发所有前端消息到ws_to_django_queue（由Django处理业务）
-            data['from_client_id'] = client_id
-
-            # 写入WS→Django队列（使用外部shared_data的线程安全方法）
-            if data.get('name') == 'front':
-                logger.debug(f"客户端 {client_id} 消息已转发至Django队列: {data.get('type')}")
-                shared_data.put_ws_to_django(data)
-
-            # 4. 向前端返回接收确认（无需等待Django处理结果）
-            ack_msg = {
-                'type': 'message_received',
-                'status': 'success',
-                'message': '消息已接收，等待Django处理',
-                'timestamp': int(asyncio.get_event_loop().time() * 1000)
-            }
-            await websocket.send(json.dumps(ack_msg))
-
-        except Exception as e:
-            logger.error(f"转发客户端消息失败: {e}")
-            await self._send_error(websocket, f"消息转发失败: {str(e)}")
-
-    async def _consume_django_to_ws_queue(self):
-        """消费「Django→WS」队列 - 接收截图数据并推送给所有前端"""
-        logger.info("启动 Django→WS 截图队列消费任务")
         while self.running:
             try:
-                # 从线程安全队列读取消息（超时1s，避免无限阻塞）
-                msg = shared_data.get_django_to_ws(timeout=1.0)
-                if msg is None:
-                    continue  # 无消息时跳过
+                # 从同步队列阻塞读取（带超时以便检查running状态）
+                data = self.queue_manager.get_for_ws(block=True, timeout=0.1)
 
-                msg_type = msg.get('type')
-                # 仅处理截图数据消息
-                if msg_type == 'screenshot_data':
-                    screenshot_bytes = msg.get('data')
-                    frame_count = msg.get('frame_count')
-
-                    if screenshot_bytes and self.clients:
-                        # 并发推送给所有在线客户端（二进制消息）
-                        tasks = [client.send(screenshot_bytes) for client in self.clients if client.open]
-                        if tasks:
-                            await asyncio.gather(*tasks, return_exceptions=True)
-                        logger.debug(f"已推送第 {frame_count} 帧截图给 {len(tasks)} 个客户端")
-
-                elif msg_type == 'group_switch_result':
-                    # 转发Django的配置反馈给所有前端
-                    await self._broadcast_to_all_clients(msg)
-
-                else:
-                    logger.warning(f"收到未知类型的Django消息: {msg_type}")
+                if data is not None:
+                    # 放入线程安全的队列，供异步协程读取
+                    self.to_ws_queue.put(data)
+                    self.queue_manager.task_done_for_ws()
 
             except Exception as e:
-                logger.error(f"消费Django截图队列失败: {e}")
-                await asyncio.sleep(0.5)
+                if self.running:
+                    print(f"[WebSocket] 队列读取错误: {e}")
+                time.sleep(0.01)
 
-    async def _handle_screenshot_ack(self, websocket: WebSocketServerProtocol, data: dict):
-        """处理截图确认 - 用于延迟检测"""
-        frame_id = data.get('frame_id')
-        client_timestamp = data.get('timestamp')
-        server_timestamp = int(time.time() * 1000)
+        print("[WebSocket] 队列读取线程已停止")
 
-        if client_timestamp:
-            delay = server_timestamp - client_timestamp
-            logger.debug(f"截图延迟: {delay}ms (frame_id: {frame_id})")
+    async def broadcast_to_clients(self):
+        """
+        从线程安全队列读取数据并广播给目标客户端
+        """
+        print("[WebSocket] 启动消息广播协程...")
 
-            # 可选：根据延迟动态调整帧率
-            if delay > 200:  # 延迟超过200ms
-                logger.warning(f"检测到高延迟: {delay}ms，考虑降低帧率")
+        while self.running:
+            try:
+                # 非阻塞检查队列（使用asyncio的sleep来让出控制权）
+                try:
+                    data = self.to_ws_queue.get_nowait()
 
-    async def _send_error(self, websocket: WebSocketServerProtocol, message: str):
-        """发送错误消息给单个客户端"""
-        error_msg = {
-            'type': 'error',
-            'message': message,
-            'timestamp': int(asyncio.get_event_loop().time() * 1000)
-        }
-        try:
-            await websocket.send(json.dumps(error_msg))
-        except:
-            pass
+                except queue.Empty:
+                    await asyncio.sleep(0.01)  # 使用异步sleep，避免阻塞事件循环
+                    continue
 
-    async def start(self):
-        """启动WebSocket服务器（包含截图队列消费任务）"""
-        self.running = True
-        # 启动Django截图队列消费任务（后台运行）
-        self.django_screenshot_task = asyncio.create_task(self._consume_django_to_ws_queue())
-        logger.info(f"启动WebSocket服务器: ws://{self.config.host}:{self.config.port}")
-        logger.info(f"目标帧率: {self.config.target_fps} FPS (间隔: {self.frame_interval:.3f}s)")
+                # print('from worker data...', data)
 
-        async with serve(
-                self.handle_client,
-                self.config.host,
-                self.config.port,
-                ping_interval=20,
-                ping_timeout=10
-        ):
-            await asyncio.Future()  # 永久运行
+                # 获取目标客户端ID
+                target_client_id = data.get("_target_client_id")
+                target_websocket_id = data.get("_target_websocket_id")
 
-    async def _broadcast_to_all_clients(self, data: dict):
-        """向所有在线客户端广播JSON消息"""
-        if not self.clients:
-            return
-        msg = json.dumps(data)
-        tasks = [client.send(msg) for client in self.clients if client.open]
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+                # 移除内部字段后再发送给前端
+                message = {k: v for k, v in data.items()
+                          if not k.startswith("_")}
 
-    def stop(self):
-        """停止服务器"""
-        self.running = False
-        if self.django_screenshot_task:
-            self.django_screenshot_task.cancel()
-        logger.info("WebSocket服务器已停止（包含截图队列消费任务）")
+                send_data = None
+                if message.get('type') == 'screenshot_data':
+                    send_data = message.get('data')
+                else:
+                    send_data = json.dumps(message)
+
+                # 发送给指定客户端或广播给所有客户端
+                disconnected_clients = []
+
+                with self.clients_lock:
+                    clients_snapshot = list(self.clients.items())
+
+                for websocket, client_id in clients_snapshot:
+                    should_send = False
+
+                    if target_client_id and client_id == target_client_id:
+                        should_send = True
+                    elif target_websocket_id and id(websocket) == target_websocket_id:
+                        should_send = True
+                    elif not target_client_id and not target_websocket_id:
+                        should_send = True  # 广播模式
+
+                    if should_send:
+                        try:
+                            await websocket.send(send_data)
+                            print(f"[WebSocket] 消息已发送给 {client_id}")
+                        except websockets.exceptions.ConnectionClosed:
+                            disconnected_clients.append(websocket)
+                        except Exception as e:
+                            print(f"[WebSocket] 发送给 {client_id} 失败: {e}")
+                            disconnected_clients.append(websocket)
+
+                # 清理已断开的客户端（使用call_soon_threadsafe避免直接调用）
+                for ws in disconnected_clients:
+                    try:
+                        await self.unregister_client(ws)
+                    except Exception as e:
+                        print(f"[WebSocket] 清理客户端时出错: {e}")
+
+            except Exception as e:
+                if self.running:
+                    print(f"[WebSocket] 广播错误: {e}")
+                    await asyncio.sleep(0.1)  # 出错时短暂休眠
+
+        print("[WebSocket] 消息广播协程已停止")
 
     async def start_server(self):
-        """启动 WebSocket 服务（异步入口）"""
-        self.running = True
-        logger.info(f"启动WebSocket服务器: ws://{self.config.host}:{self.config.port}")
-        async with serve(
+        """启动WebSocket服务器"""
+        print(f"[WebSocket] 启动服务器于 ws://{self.host}:{self.port}")
+
+        self.server = await websockets.serve(
             self.handle_client,
-            self.config.host,
-            self.config.port,
+            self.host,
+            self.port,
             ping_interval=20,
             ping_timeout=10
-        ):
-            await asyncio.Future()  # 持续运行
+        )
+
+        # 启动广播协程
+        broadcast_task = asyncio.create_task(self.broadcast_to_clients())
+
+        try:
+            # 保持运行
+            await self.server.wait_closed()
+        finally:
+            broadcast_task.cancel()
+            try:
+                await broadcast_task
+            except asyncio.CancelledError:
+                pass
+
+    def run(self):
+        """在新线程中运行WebSocket服务器"""
+        self.running = True
+
+        # 启动同步队列读取线程（必须在设置running=True之后）
+        queue_thread = threading.Thread(target=self.sync_queue_reader, daemon=True)
+        queue_thread.start()
+
+        # 设置并启动事件循环
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+        try:
+            self.loop.run_until_complete(self.start_server())
+        except Exception as e:
+            print(f"[WebSocket] 服务器错误: {e}")
+        finally:
+            self.running = False
+            # 取消所有待处理的任务
+            pending = asyncio.all_tasks(self.loop)
+            for task in pending:
+                task.cancel()
+
+            if pending:
+                self.loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+
+            self.loop.close()
+
+    def start(self):
+        """启动WebSocket服务器（非阻塞，在新线程中运行）"""
+        self.thread = threading.Thread(target=self.run, daemon=True)
+        self.thread.start()
+        return self.thread
+
+    def stop(self):
+        """停止WebSocket服务器"""
+        print("[WebSocket] 正在停止服务器...")
+        self.running = False
+
+        if self.server:
+            self.server.close()
+
+        if self.thread and self.thread.is_alive():
+            self.thread.join(timeout=5)
+
+        print("[WebSocket] 服务器已停止")
 
 
-ws_server = WebSocketServer()
-
-if __name__ == '__main__':
-    try:
-        # 初始化默认配置的服务器
-        # ws_server = WebSocketServer()
-        # 启动服务器（包含队列消费任务）
-        asyncio.run(ws_server.start())
-    except KeyboardInterrupt:
-        ws_server.stop()
-        logger.info("服务器已停止")
+# 便捷启动函数
+def start_websocket_server(host: str = "0.0.0.0", port: int = 8765) -> WebSocketServer:
+    """启动WebSocket服务器并返回实例"""
+    server = WebSocketServer(host=host, port=port)
+    server.start()
+    return server

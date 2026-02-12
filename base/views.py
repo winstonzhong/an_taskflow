@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from rest_framework.views import APIView
 
-from base.models import 定时任务
+from base.models import 定时任务, 配置表
 from commons.constants import API_RET_CODE_PARAMS_ERROR, API_RET_CODE_RECORD_NOT_EXISTED_ERROR
 from commons.exceptions import RecordNotExistedError
 from commons.helper_cache import 获取页面数据, 插入操作数据, 更新知识库
@@ -134,6 +134,14 @@ class 用户配置视图(APIView):
         obj.保存用户配置(key, value, friend=friend)
         return JsonResponse(ret_data)
 
+class 更新sn(APIView):
+
+    def post(self, request):
+        data = request.data
+        sn = data.get('sn')
+        配置表.更新sn(sn)
+        ret_data = api_ret_data()
+        return JsonResponse(ret_data)
 
 class 用户知识库视图(APIView):
 
@@ -174,4 +182,5 @@ class 用户知识库视图(APIView):
 
 def 控制页面(request):
     if request.method == 'GET':
-        return render(request, 'control.html')
+        技能列表 = 定时任务.获取所有技能()
+        return render(request, 'control.html', context={'skill_list': 技能列表})
