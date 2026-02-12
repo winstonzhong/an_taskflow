@@ -58,7 +58,7 @@ class WebSocketServer:
             client_id = self.clients.pop(websocket, "unknown")
         print(f"[WebSocket] 客户端 {client_id} 已断开，当前连接数: {len(self.clients)}")
 
-    async def handle_client(self, websocket: websockets.WebSocketServerProtocol, path: str):
+    async def handle_client(self, websocket: websockets.WebSocketServerProtocol, *args):
         """
         处理单个客户端连接
         """
