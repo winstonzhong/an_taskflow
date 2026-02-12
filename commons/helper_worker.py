@@ -325,7 +325,7 @@ class RobotManager:
                 print(f"警告: 结果队列已满，screenshot_data消息可能丢失")
 
         定时任务.IP_PORT = CONFIGS.get('ip_port')
-        定时任务.执行一轮定时任务()
+        定时任务.执行一轮定时任务(group_name__isnull=False)
 
 
 
