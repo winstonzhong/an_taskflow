@@ -18,6 +18,8 @@ db.sqlite3-journal
 */build/
 */dist/
 */venv/
+*/venv_win/
+*/venv_linux/
 *.sqlite3
 config.yml
 
