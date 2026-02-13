@@ -6,7 +6,8 @@ from .views import (
     用户配置视图,
     用户知识库视图,
     控制页面,
-    更新sn
+    更新sn,
+    技能视图
 )
 
 
@@ -19,4 +20,8 @@ urlpatterns = [
 
     path("control", 控制页面),
     path("update_sn", 更新sn.as_view()),
+
+    path("skills", 技能视图.as_view()),
+
+
 ]

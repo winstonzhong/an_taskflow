@@ -11,6 +11,8 @@ import os
 from typing import List
 
 # 导入各模块
+from django.core.management import call_command
+
 from commons.queue_manager import get_queue_manager
 from commons.websocket_server import start_websocket_server
 from commons.helper_worker import start_worker, start_browser_worker
@@ -22,7 +24,7 @@ class ApplicationManager:
     统一管理所有服务的生命周期
     """
 
-    def __init__(self, django_manage_py_path: str = None):
+    def __init__(self):
         self.queue_manager = get_queue_manager()
         self.websocket_server = None
         self.django_server = None
@@ -32,7 +34,7 @@ class ApplicationManager:
 
 
         # Django 项目 manage.py 路径
-        self.django_manage_py_path = django_manage_py_path or "manage.py"
+        # self.django_manage_py_path = django_manage_py_path or "manage.py"
 
         # 存储所有线程
         self.threads: List[threading.Thread] = []
@@ -88,38 +90,57 @@ class ApplicationManager:
         在新线程中启动 Django 开发服务器
         使用 os.system 或 subprocess 调用已有的 manage.py
         """
+        # def _run_django():
+        #     """运行 Django 服务器的线程函数"""
+        #     print(f"[Django] 通过 {self.django_manage_py_path} 启动服务...")
+        #
+        #     # 使用 subprocess 启动 Django，这样可以正确隔离环境
+        #     import subprocess
+        #
+        #     cmd = [
+        #         sys.executable,  # 当前 Python 解释器
+        #         self.django_manage_py_path,
+        #         "runserver",
+        #         "0.0.0.0:8001",
+        #         "--noreload",  # 禁用自动重载，避免多线程问题
+        #     ]
+        #
+        #     try:
+        #         # 启动 Django 进程并等待
+        #         process = subprocess.Popen(
+        #             cmd,
+        #             cwd=os.path.dirname(os.path.abspath(self.django_manage_py_path)) or None,
+        #             stdout=sys.stdout,
+        #             stderr=sys.stderr,
+        #         )
+        #
+        #         # 保存进程引用以便后续终止
+        #         self.django_process = process
+        #
+        #         # 等待进程结束
+        #         process.wait()
+        #
+        #     except Exception as e:
+        #         print(f"[Django] 启动失败: {e}")
+
         def run_django():
-            """运行 Django 服务器的线程函数"""
-            print(f"[Django] 通过 {self.django_manage_py_path} 启动服务...")
-
-            # 使用 subprocess 启动 Django，这样可以正确隔离环境
-            import subprocess
-
-            cmd = [
-                sys.executable,  # 当前 Python 解释器
-                self.django_manage_py_path,
-                "runserver",
-                "0.0.0.0:8001",
-                "--noreload",  # 禁用自动重载，避免多线程问题
-            ]
-
             try:
-                # 启动 Django 进程并等待
-                process = subprocess.Popen(
-                    cmd,
-                    cwd=os.path.dirname(os.path.abspath(self.django_manage_py_path)) or None,
-                    stdout=sys.stdout,
-                    stderr=sys.stderr,
+                # 启动 Django runserver（同步阻塞）
+                call_command(
+                    "runserver",
+                    f"0.0.0.0:8001",
+                    use_reloader=False,  # 关闭自动重载（异步环境下必须）
+                    use_ipv6=False,
+                    verbosity=1
                 )
-
-                # 保存进程引用以便后续终止
-                self.django_process = process
-
-                # 等待进程结束
-                process.wait()
-
             except Exception as e:
-                print(f"[Django] 启动失败: {e}")
+                print(f"Django Web 服务启动失败：{e}")
+            finally:
+                print("Django Web 服务线程已退出")
+
+
+
+
 
         # 在新线程中启动 Django
         self.django_thread = threading.Thread(
@@ -206,17 +227,17 @@ def main():
         sys.exit(1)
 
     # 检查 manage.py 是否存在
-    manage_py = "manage.py"
-    if len(sys.argv) > 1:
-        manage_py = sys.argv[1]
-
-    if not os.path.exists(manage_py):
-        print(f"错误：找不到 Django manage.py 文件: {manage_py}")
-        print("用法: python main.py [path/to/manage.py]")
-        sys.exit(1)
+    # manage_py = "manage.py"
+    # if len(sys.argv) > 1:
+    #     manage_py = sys.argv[1]
+    #
+    # if not os.path.exists(manage_py):
+    #     print(f"错误：找不到 Django manage.py 文件: {manage_py}")
+    #     print("用法: python main.py [path/to/manage.py]")
+    #     sys.exit(1)
 
     # 启动应用
-    app_manager = ApplicationManager(django_manage_py_path=manage_py)
+    app_manager = ApplicationManager()
     app_manager.start_all()
 
 

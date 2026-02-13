@@ -11,7 +11,7 @@ from django.utils import timezone
 from caidao_tools.django.abstract import (
     抽象定时任务,
     BaseModel)
-from commons.external_api import push_task_data, push_sys_info
+from commons.external_api import push_task_data, push_sys_info, get_skills
 from commons.helper_db import retry_db_concurrency
 from commons.utils import filter_records_by_time
 
@@ -49,6 +49,7 @@ class 定时任务(抽象定时任务):
     队列名称 = models.CharField(max_length=50, null=True, blank=True)
     知识库 = models.BinaryField(null=True)
     上一次推送时间 = models.DateTimeField(null=True, blank=True)
+    是否服务任务 = models.BooleanField(default=False)
 
     class Meta:
         indexes = [
@@ -229,6 +230,19 @@ class 定时任务(抽象定时任务):
                 cls.objects.create(**x)
 
     @classmethod
+    def 从远端导入定时任务(cls):
+        任务列表 = get_skills()
+        # print('任务列表', 任务列表)
+        for x in 任务列表:
+            # print(x)
+            x['激活'] = False
+            name = x.get("名称")
+            qs = cls.objects.filter(名称=name)
+            if not qs.exists():
+                cls.objects.create(**x)
+
+
+    @classmethod
     def 动态初始化(cls, **kwargs):
         if tool_date.是否在时间段内("23:00:00", "08:00:00"):
             cls.objects.filter(名称__in=["微信_微信运动同步"]).exclude(
@@ -290,38 +304,6 @@ class 定时任务(抽象定时任务):
         objs.update(激活=is_active)
         return objs
 
-    @classmethod
-    def test(cls, bin_data, **kwargs):
-        import asyncio
-        reset_queries(**kwargs)
-
-        cls.动态初始化(**kwargs)
-        # cls.心跳上传(**kwargs)
-        print('kwargs', kwargs)
-        q = cls.得到所有待执行的任务(**kwargs).order_by("-优先级", "update_time")
-        print('q', q)
-        max_priority = 0
-        for obj in q.iterator():
-            print('obj', obj)
-
-        x = asyncio.run(send_screenshot(bin_data))
-        print('x', x)
-        time.sleep(2)
-
-
-async def send_screenshot(bin_data):
-    import asyncio
-    from commons.websocket_server import get_shared_data
-    shared_data = get_shared_data()
-    data = {
-                'type': 'screenshot_data',
-                'data': bin_data,
-                'frame_count': 1,
-                'timestamp': asyncio.get_event_loop().time()
-            }
-    print(data)
-    await shared_data.django_to_ws_queue.put(data)
-    return 'aaa'
 
 
 
@@ -342,9 +324,9 @@ class 配置表(models.Model):
 
     @classmethod
     def 更新sn(cls, value):
-        print('value', value)
+        # print('value', value)
         obj, _ = cls.objects.get_or_create(key=KEY_SN)
-        print('obj', obj)
+        # print('obj', obj)
         obj.value = value
         obj.save()
 

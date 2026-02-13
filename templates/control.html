@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket 截图+控制交互演示</title>
+    <title>都包代班儿手机</title>
     <!-- 引入 Tailwind CSS CDN -->
     <script src="https://file.j1.sale/api/file/static/js/tailwindcss.js"></script>
     <!-- 配置 Tailwind 自定义颜色和工具类 -->
@@ -102,22 +102,21 @@
 </head>
 <body class="bg-gradient-to-br from-darkBg1 to-darkBg2 min-h-screen text-white p-5 font-sans">
     <div class="container max-w-7xl mx-auto">
-        <h1 class="text-center mb-8 text-2xl text-primary">🔌 WebSocket 截图+控制交互演示</h1>
+        <h1 class="text-center mb-8 text-2xl text-primary">都包代班儿手机</h1>
 
         <!-- 主布局：大屏三列，小屏一列 -->
         <div class="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-5 items-start">
             <!-- 左侧：脚本列表 -->
             <div class="bg-cardBg rounded-xl p-5 border border-borderLight">
-                <div class="text-sm text-white/60 mb-4 uppercase tracking-wider">脚本列表 (可多选)</div>
+                <div class="flex justify-between items-center text-sm text-white/60 mb-4 uppercase tracking-wider">
+                    <span>网友共享技能列表 (可多选)</span>
+                    <!-- 新增：手动刷新按钮 -->
+                    <button class="refresh-btn text-primary hover:text-primaryDark transition-colors text-xs flex items-center gap-1" id="refreshSkillsBtn">
+                        <span>↻</span>
+                        <span>刷新</span>
+                    </button>
+                </div>
                 <div class="script-list flex flex-col gap-2.5" id="scriptList">
-                    {% for skill_data in skill_list %}
-                    <div class="script-card p-3 bg-cardBg rounded-lg cursor-pointer transition-all border border-transparent relative hover:bg-cardBgHover hover:border-borderPrimaryLight
-                                {% if skill_data.是否激活 %}  active bg-primary/10 border-borderPrimary script-active {% endif %}
-                                " data-script="{{ skill_data.group_name }}">
-                        <div class="script-name text-sm font-medium mb-1">{{ skill_data.group_name }}</div>
-                        <div class="script-desc text-xs text-white/50">{{ skill_data.描述|default:'' }}</div>
-                    </div>
-                    {% endfor %}
                 </div>
 
                 <div class="connection-info mt-5 p-3.5 bg-black/30 rounded-lg">
@@ -162,7 +161,7 @@
                         <!-- 5. 未连接状态：确保全屏居中显示，默认可见 -->
                         <div class="no-connection absolute inset-0 flex flex-col items-center justify-center text-white/40" id="noConnection">
                             <div class="no-connection-icon w-15 h-15 border-2 border-white/20 rounded-full mb-3.5 flex items-center justify-center text-2xl">📱</div>
-                            <div>未连接设备</div>
+                            <div id="connectMsg">未连接设备</div>
                         </div>
                     </div>
                 </div>
@@ -245,7 +244,7 @@
 
             connect() {
                 if (this.ws?.readyState === WebSocket.OPEN) return;
-
+                updateConnectMsg('已连接, 等待数据传输')
                 // 主动断开后重新连接，重置手动断开标记
                 this.isManualDisconnect = false;
                 this.connectionState = 'connecting';
@@ -285,6 +284,7 @@
 
                     this.ws.onclose = () => {
                         console.log('[WebSocket] 连接关闭');
+                        updateConnectMsg('未连接设备')
                         this.connectionState = 'disconnected';
                         this.robotState = 'stopped'; // 连接断开重置机器人状态
                         this.updateStatus();
@@ -806,6 +806,12 @@
             wsClient.sendControl('screenshot');
         });
 
+        document.getElementById('refreshSkillsBtn').addEventListener('click', () => {
+            loadSkills(forceFetch=true)
+        });
+
+
+
         // 脚本卡片点击 - 仅推送当前点击脚本的数据
         document.querySelectorAll('.script-card').forEach(card => {
             card.addEventListener('click', () => {
@@ -888,9 +894,48 @@
         //     return null;
         // }
 
+        function fetchSkills(forceFetch=false) {
+            let data = {}
+            if (forceFetch){
+                data.force_fetch = forceFetch
+            }
+            let retData = req.getSync('/base/skills', data)
+            console.log('retData', retData)
+            if (retData.code === 2000){
+                return retData.data
+            }
+        }
+
+        function loadSkills(forceFetch=false){
+
+            const scriptListEl = document.getElementById('scriptList')
+            let skillList = fetchSkills(forceFetch=forceFetch)
+            console.log('skillList', skillList)
+            let html = ''
+            for (let i in skillList){
+                let skill_data = skillList[i]
+                console.log('skill_data', skill_data)
+                html += `
+                        <div class="script-card p-3 bg-cardBg rounded-lg cursor-pointer transition-all border border-transparent relative hover:bg-cardBgHover hover:border-borderPrimaryLight
+                            ${skill_data.是否激活 ? 'active bg-primary/10 border-borderPrimary script-active': ''}
+                            " data-script="${skill_data.group_name}">
+                            <div class="script-name text-sm font-medium mb-1">${skill_data.group_name}</div>
+                            <div class="script-desc text-xs text-white/50">${skill_data.描述 ||'' }</div>
+                        </div>
+                `
+                scriptListEl.innerHTML = html
+            }
+        }
+
+        function updateConnectMsg(msg){
+            document.getElementById('connectMsg').innerHTML = msg
+        }
+
+
         document.addEventListener('DOMContentLoaded', () => {
             setAllScriptsDisabled();
             // init()
+            loadSkills(forceFetch=true)
         })
 
         log('页面加载完成，点击"连接服务器"开始使用', 'info');

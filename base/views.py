@@ -179,8 +179,22 @@ class 用户知识库视图(APIView):
         return JsonResponse(ret_data)
 
 
-
 def 控制页面(request):
     if request.method == 'GET':
+        return render(request, 'control.html',
+                      )
+
+
+class 技能视图(APIView):
+
+    def get(self, request):
+        ret_data = api_ret_data()
+        force_fetch = request.GET.get('force_fetch')
+        if force_fetch:
+            try:
+                定时任务.从远端导入定时任务()
+            except:
+                pass
         技能列表 = 定时任务.获取所有技能()
-        return render(request, 'control.html', context={'skill_list': 技能列表})
+        ret_data['data'] = 技能列表
+        return JsonResponse(ret_data)

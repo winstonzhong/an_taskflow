@@ -25,11 +25,18 @@ def run_cmd(cmd):
         raise
 
 
-def pack():
-    """打包"""
+def pack_django():
+    """打包django服务"""
     build_dir = get_build_dir()
     dist_dir = get_dist_dir()
     cmd = f'pyinstaller manage.spec -y --clean --distpath {dist_dir} --workpath {build_dir}'
+    run_cmd(cmd)
+
+def pack_main():
+    """打包main.py"""
+    build_dir = get_build_dir()
+    dist_dir = get_dist_dir()
+    cmd = f'pyinstaller main.spec -y --clean --distpath {dist_dir} --workpath {build_dir}'
     run_cmd(cmd)
 
 
@@ -45,8 +52,8 @@ def remove_existed_pack():
 def main(is_remove_existed=False):
     if is_remove_existed:
         remove_existed_pack()
-    pack()
+    pack_main()
 
 
 if __name__ == '__main__':
-    main(is_remove_existed=False)
+    main(is_remove_existed=True)

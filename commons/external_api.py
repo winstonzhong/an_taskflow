@@ -20,3 +20,9 @@ def push_sys_info(data):
     resp = requests.post(url, json=data)
     # print(resp.content)
     return resp.json()
+
+
+def get_skills():
+    url = f'{HOST}/daiban/client/skills'
+    resp = requests.get(url)
+    return resp.json().get('data')

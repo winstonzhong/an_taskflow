@@ -24,19 +24,36 @@ hidden_import_list += collect_submodules('django.contrib.sessions')
 hidden_import_list += collect_submodules('django.contrib.messages')
 hidden_import_list += collect_submodules('django.db.backends')
 hidden_import_list += collect_submodules('corsheaders')
+hidden_import_list += collect_submodules('rest_framework')
+
+hidden_import_list += collect_submodules('pandas')
+hidden_import_list += collect_submodules('numpy')
+# hidden_import_list += [
+#                 'pandas',
+#                 'pandas._libs',
+#                 'pandas._libs.tslibs',
+#                 'pandas._libs.window',
+#                 'pandas._libs.window.aggregations',
+#                 'pandas._libs.window.indexers',
+#                 'pandas._libs.aggregations',
+#                 ]
 
 # hidden_import_list += collect_submodules('cryptography')
 
 # hidden_import_list += collect_submodules('pandas')
 # hidden_import_list += collect_submodules('numpy')
 
-# datas = collect_data_files('pandas') + collect_data_files('numpy')
+datas = collect_data_files('pandas')
+
+# + collect_data_files('numpy')
 binaries = collect_dynamic_libs('numpy')
 hidden_import_list += ['numpy', 'numpy.core._multiarray_umath']  # 显式导入缺失模块
-# binaries = [('.venv/Lib/site-packages/numpy/.libs/*', 'numpy/.libs')]  # 包含动态库
+# binaries += [(r'.\venv_win/Lib/site-packages/numpy/.libs/*', 'numpy/.libs')]  # 包含动态库
 # binaries = []
-datas = []
-
+# datas = []
+# datas = [
+#             (r'.\venv_win\Lib\site-packages\pandas\_libs', 'pandas/_libs'),
+#         ]
 binaries += [
     # ('/data/data/com.termux/files/usr/lib/libexpat.so.1', '.'),
     # ('/data/data/com.termux/files/usr/lib/libsqlite3.so', '.'),
@@ -51,10 +68,10 @@ binaries += [
 
 
 a = Analysis(
-    ['../manage.py'],
+    ['../main.py'],
     pathex=[CAIDAO_DIR, '../'],
     binaries=binaries,  # 格式: (来源目录, 目标目录), 根据实际情况修改来源目录
-    datas=[('../config.txt', './')] + datas,  #(来源目录, 目标目录), 根据实际情况修改来源目录
+    datas=[('../templates', './templates'), ('../config', './config'), (f'{CAIDAO_DIR}/queue_redis_json.cfg', '.')] + datas,  #(来源目录, 目标目录), 根据实际情况修改来源目录
     hiddenimports=hidden_import_list,
     hookspath=['hooks'],
     hooksconfig={},
@@ -62,32 +79,66 @@ a = Analysis(
     excludes=[],
     noarchive=False,
     optimize=0,
+
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=None,
+
 )
-pyz = PYZ(a.pure)
+pyz = PYZ(a.pure,
+          a.zipped_data,
+          cipher=None
+          )
+
+# exe = EXE(
+#     pyz,
+#     a.scripts,
+#     [],
+#     exclude_binaries=True,
+#     name='main',
+#     debug=True,
+#     bootloader_ignore_signals=False,
+#     strip=False,
+#     upx=False,
+#     console=True,
+#     disable_windowed_traceback=False,
+#     argv_emulation=False,
+#     target_arch=None,
+#     codesign_identity=None,
+#     entitlements_file=None,
+# )
+
+
 
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
     [],
-    exclude_binaries=True,
-    name='manage',
-    debug=False,
+    name='main',  # 生成的exe文件名
+    debug=False,  # 调试完成后改为False
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
-    console=True,
+    upx=False,  # 禁用UPX压缩（UPX可能损坏pandas的DLL文件）
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console=True,  # 保持控制台输出，便于查看错误日志
     disable_windowed_traceback=False,
     argv_emulation=False,
-    target_arch=None,
+    target_arch=None,  # 自动匹配系统架构
     codesign_identity=None,
     entitlements_file=None,
 )
+
+
 coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
-    name='manage',
+    name='main',
 )
