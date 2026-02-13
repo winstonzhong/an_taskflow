@@ -46,6 +46,7 @@ class 定时任务(抽象定时任务):
     设备相关 = models.BooleanField(default=True)
     网络任务 = models.CharField(null=True, blank=True, max_length=255)
     数据 = models.JSONField(default=dict, blank=True, null=True)
+    配置 = models.JSONField(default=dict, blank=True, null=True)
     队列名称 = models.CharField(max_length=50, null=True, blank=True)
     知识库 = models.BinaryField(null=True)
     上一次推送时间 = models.DateTimeField(null=True, blank=True)
