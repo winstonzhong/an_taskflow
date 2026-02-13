@@ -1,3 +1,5 @@
+import traceback
+
 from django.http import JsonResponse
 from django.shortcuts import render
 from rest_framework.views import APIView
@@ -190,11 +192,12 @@ class 技能视图(APIView):
     def get(self, request):
         ret_data = api_ret_data()
         force_fetch = request.GET.get('force_fetch')
+        print('force_fetch', force_fetch)
         if force_fetch:
             try:
                 定时任务.从远端导入定时任务()
             except:
-                pass
+                traceback.print_exc()
         技能列表 = 定时任务.获取所有技能()
         ret_data['data'] = 技能列表
         return JsonResponse(ret_data)

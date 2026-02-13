@@ -523,7 +523,7 @@ class Worker:
             state = 'running'
         else:
             state = 'stopped'
-        
+
         return {
             "type": "robot_status",
             "success": True,
