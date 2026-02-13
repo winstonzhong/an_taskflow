@@ -62,7 +62,7 @@ import logging
 # except ImportError:
 #     Image = None
 #     logger.warning("未安装 PIL/Pillow，将使用模拟 Base64 图片数据（前端无法正常渲染真实图片）")
-from commons.helper_daiban_worker import worker_main
+# from commons.helper_daiban_worker import worker_main
 
 
 def set_file(content, to_url):
@@ -489,7 +489,7 @@ class Command(BaseCommand):
 
         parser.add_argument("--排除关键词", nargs="?", default="游戏", type=str)
         parser.add_argument("--心跳上报", action="store_true", default=False)
-        parser.add_argument("--一键执行", action="store_true", default=False)
+        # parser.add_argument("--一键执行", action="store_true", default=False)
 
 
 
@@ -613,27 +613,27 @@ class Command(BaseCommand):
                 print('----------------------')
                 time.sleep(10)
 
-        if options.get('一键执行'):
-
-            tool_xpath.global_rom.最低分 = options.get("最低分")
-            tool_xpath.global_rom.关键词 = options.get("关键词")  # .split(",")
-            tool_xpath.global_rom.排除关键词 = options.get("排除关键词")  # .split(",")
-            tool_xpath.global_rom.最高上限 = options.get("最高上限")
-            tool_xpath.global_rom.最低下限 = options.get("最低下限")
-            tool_xpath.global_rom.最低互动总数 = options.get("最低互动总数")
-            tool_xpath.global_rom.不回关 = options.get("不回关")
-
-            # list_tasks(options.get("一键执行"))
-            # kwargs = get_query_kwargs(
-            #     options.get("一键执行"), 不考虑任务时间因素=False
-            # )
-
-            kwargs = {}
-
-            try:
-                asyncio.run(worker_main(每轮间隔秒数=options.get("span"), **kwargs))
-            except Exception as e:
-                print(f"服务启动失败：{str(e)}")
-                self.stdout.write(self.style.ERROR(f"服务启动失败：{str(e)}"))
-            else:
-                self.stdout.write(self.style.SUCCESS("服务已正常退出"))
+        # if options.get('一键执行'):
+        #
+        #     tool_xpath.global_rom.最低分 = options.get("最低分")
+        #     tool_xpath.global_rom.关键词 = options.get("关键词")  # .split(",")
+        #     tool_xpath.global_rom.排除关键词 = options.get("排除关键词")  # .split(",")
+        #     tool_xpath.global_rom.最高上限 = options.get("最高上限")
+        #     tool_xpath.global_rom.最低下限 = options.get("最低下限")
+        #     tool_xpath.global_rom.最低互动总数 = options.get("最低互动总数")
+        #     tool_xpath.global_rom.不回关 = options.get("不回关")
+        #
+        #     # list_tasks(options.get("一键执行"))
+        #     # kwargs = get_query_kwargs(
+        #     #     options.get("一键执行"), 不考虑任务时间因素=False
+        #     # )
+        #
+        #     kwargs = {}
+        #
+        #     try:
+        #         asyncio.run(worker_main(每轮间隔秒数=options.get("span"), **kwargs))
+        #     except Exception as e:
+        #         print(f"服务启动失败：{str(e)}")
+        #         self.stdout.write(self.style.ERROR(f"服务启动失败：{str(e)}"))
+        #     else:
+        #         self.stdout.write(self.style.SUCCESS("服务已正常退出"))

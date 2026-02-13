@@ -810,49 +810,6 @@
             loadSkills(forceFetch=true)
         });
 
-
-
-        // 脚本卡片点击 - 仅推送当前点击脚本的数据
-        document.querySelectorAll('.script-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const scriptName = card.dataset.script;
-                const scriptDisplayName = card.querySelector('.script-name').textContent;
-
-                // 如果未连接，仅本地切换状态
-                if (wsClient.connectionState !== 'connected') {
-                    // 切换选中状态
-                    card.classList.toggle('active');
-                    card.classList.toggle('bg-primary/10');
-                    card.classList.toggle('border-borderPrimary');
-                    card.classList.toggle('script-active');
-
-                    if (card.classList.contains('active')) {
-                        log(`选中脚本: ${scriptDisplayName}（未连接，仅本地状态）`, 'info');
-                    } else {
-                        log(`取消选中脚本: ${scriptDisplayName}（未连接，仅本地状态）`, 'info');
-                    }
-                    return;
-                }
-
-                // 已连接时，先标记为等待状态，再发送单条脚本数据
-                const willBeActive = !card.classList.contains('active');
-                card.classList.add('script-pending');
-                card.style.pointerEvents = 'none'; // 禁用重复点击
-
-                // 仅发送当前点击脚本的状态数据
-                wsClient.sendSingleScriptStatus(scriptName, willBeActive);
-
-                // 本地先临时切换状态（服务器确认后会最终更新）
-                if (willBeActive) {
-                    card.classList.add('active', 'bg-primary/10', 'border-borderPrimary', 'script-active');
-                    log(`请求启用脚本: ${scriptDisplayName}（等待服务器确认）`, 'info');
-                } else {
-                    card.classList.remove('active', 'bg-primary/10', 'border-borderPrimary', 'script-active');
-                    log(`请求禁用脚本: ${scriptDisplayName}（等待服务器确认）`, 'info');
-                }
-            });
-        });
-
         // 页面关闭时清理
         window.addEventListener('beforeunload', () => {
             if (currentBlobUrl) {
@@ -925,6 +882,50 @@
                 `
                 scriptListEl.innerHTML = html
             }
+
+
+            // 脚本卡片点击 - 仅推送当前点击脚本的数据
+            document.querySelectorAll('.script-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const scriptName = card.dataset.script;
+                    const scriptDisplayName = card.querySelector('.script-name').textContent;
+                    console.log('scriptName', scriptName)
+                    console.log('wsClient.connectionState', wsClient.connectionState)
+                    // 如果未连接，仅本地切换状态
+                    if (wsClient.connectionState !== 'connected') {
+                        // 切换选中状态
+                        card.classList.toggle('active');
+                        card.classList.toggle('bg-primary/10');
+                        card.classList.toggle('border-borderPrimary');
+                        card.classList.toggle('script-active');
+
+                        if (card.classList.contains('active')) {
+                            log(`选中脚本: ${scriptDisplayName}（未连接，仅本地状态）`, 'info');
+                        } else {
+                            log(`取消选中脚本: ${scriptDisplayName}（未连接，仅本地状态）`, 'info');
+                        }
+                        return;
+                    }
+
+                    // 已连接时，先标记为等待状态，再发送单条脚本数据
+                    const willBeActive = !card.classList.contains('active');
+                    card.classList.add('script-pending');
+                    card.style.pointerEvents = 'none'; // 禁用重复点击
+
+                    // 仅发送当前点击脚本的状态数据
+                    wsClient.sendSingleScriptStatus(scriptName, willBeActive);
+
+                    // 本地先临时切换状态（服务器确认后会最终更新）
+                    if (willBeActive) {
+                        card.classList.add('active', 'bg-primary/10', 'border-borderPrimary', 'script-active');
+                        log(`请求启用脚本: ${scriptDisplayName}（等待服务器确认）`, 'info');
+                    } else {
+                        card.classList.remove('active', 'bg-primary/10', 'border-borderPrimary', 'script-active');
+                        log(`请求禁用脚本: ${scriptDisplayName}（等待服务器确认）`, 'info');
+                    }
+                });
+            });
+
         }
 
         function updateConnectMsg(msg){
@@ -933,9 +934,10 @@
 
 
         document.addEventListener('DOMContentLoaded', () => {
+            loadSkills(forceFetch=true)
             setAllScriptsDisabled();
             // init()
-            loadSkills(forceFetch=true)
+
         })
 
         log('页面加载完成，点击"连接服务器"开始使用', 'info');
