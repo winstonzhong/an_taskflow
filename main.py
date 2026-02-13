@@ -80,7 +80,7 @@ class ApplicationManager:
         print("按 Ctrl+C 停止服务")
         print("=" * 50 + "\n")
 
-        self.browser = start_browser_worker()
+        # self.browser = start_browser_worker()
 
         # 主循环：监控服务状态
         self._monitor_loop()
@@ -90,38 +90,6 @@ class ApplicationManager:
         在新线程中启动 Django 开发服务器
         使用 os.system 或 subprocess 调用已有的 manage.py
         """
-        # def _run_django():
-        #     """运行 Django 服务器的线程函数"""
-        #     print(f"[Django] 通过 {self.django_manage_py_path} 启动服务...")
-        #
-        #     # 使用 subprocess 启动 Django，这样可以正确隔离环境
-        #     import subprocess
-        #
-        #     cmd = [
-        #         sys.executable,  # 当前 Python 解释器
-        #         self.django_manage_py_path,
-        #         "runserver",
-        #         "0.0.0.0:8001",
-        #         "--noreload",  # 禁用自动重载，避免多线程问题
-        #     ]
-        #
-        #     try:
-        #         # 启动 Django 进程并等待
-        #         process = subprocess.Popen(
-        #             cmd,
-        #             cwd=os.path.dirname(os.path.abspath(self.django_manage_py_path)) or None,
-        #             stdout=sys.stdout,
-        #             stderr=sys.stderr,
-        #         )
-        #
-        #         # 保存进程引用以便后续终止
-        #         self.django_process = process
-        #
-        #         # 等待进程结束
-        #         process.wait()
-        #
-        #     except Exception as e:
-        #         print(f"[Django] 启动失败: {e}")
 
         def run_django():
             try:
@@ -164,7 +132,7 @@ class ApplicationManager:
                 worker_alive = self.worker.is_alive()
                 django_alive = self.django_thread.is_alive() if hasattr(self, 'django_thread') else False
 
-                browser_alive = self.browser.is_alive()
+                # browser_alive = self.browser.is_alive()
 
                 if not ws_alive:
                     print("[Main] 警告: WebSocket Server 线程已停止")

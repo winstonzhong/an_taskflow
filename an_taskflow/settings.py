@@ -17,6 +17,12 @@ import sys
 
 import os
 
+
+import collections
+from collections.abc import Hashable
+if sys.version_info >= (3, 10):
+    collections.Hashable = Hashable
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 import yaml
 
