@@ -191,7 +191,7 @@
 
     <script>
         const req = new http()
-
+        let localHost = window.location.hostname
 
         function setAllScriptsDisabled() {
             document.querySelectorAll('.script-card').forEach(card => {
@@ -706,7 +706,7 @@
         }
 
         // ==================== 初始化 ====================
-        const wsClient = new WebSocketClient('ws://localhost:8765');
+        const wsClient = new WebSocketClient(`ws://${localHost}:8765`);
 
         // 截图处理（确保隐藏/显示逻辑正常）
         let currentBlobUrl = null;
