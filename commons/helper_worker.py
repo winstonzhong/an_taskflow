@@ -367,7 +367,7 @@ class Worker:
         self.handlers["group_switch"] = self._handle_group_switch
         self.handlers["start_robot"] = self._handle_start_robot
         self.handlers["stop_robot"] = self._handle_stop_robot
-        self.handlers["robot_status"] = self._handle_robot_status
+        self.handlers["query_robot_status"] = self._handle_robot_status
         self.handlers["echo"] = self._handle_echo
 
         print(f"[Worker] 已注册处理器: {list(self.handlers.keys())}")
@@ -492,7 +492,6 @@ class Worker:
                     "state": "stopped",
                     "success": True,
                     "robot_id": robot_id,
-                    "status": "stopping",
                     "message": f"机器人 {robot_id} 停止信号已发送"
                 }
             else:
@@ -515,11 +514,20 @@ class Worker:
     def _handle_robot_status(self, data: Dict) -> Dict:
         """查询机器人状态"""
         robot_id = data.get("robot_id")
-        status = self.robot_manager.get_robot_status(robot_id)
-
+        state_data = self.robot_manager.get_robot_status(robot_id)
+        is_alive = state_data.get('is_alive')
+        is_stopping = state_data.get('is_stopping')
+        if is_stopping:
+            state = 'stopping'
+        elif is_alive:
+            state = 'running'
+        else:
+            state = 'stopped'
+        
         return {
-            "type": "robot_status_response",
-            "status": status
+            "type": "robot_status",
+            "success": True,
+            "state": state
         }
 
     def _handle_echo(self, data: Dict) -> Dict:

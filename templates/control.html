@@ -245,6 +245,7 @@
             connect() {
                 if (this.ws?.readyState === WebSocket.OPEN) return;
                 updateConnectMsg('已连接, 等待数据传输')
+
                 // 主动断开后重新连接，重置手动断开标记
                 this.isManualDisconnect = false;
                 this.connectionState = 'connecting';
@@ -253,7 +254,6 @@
                 // 显示所有脚本卡片的等待更新状态
                 // setAllScriptsPending(true);
                 setAllScriptsEnable()
-
                 try {
                     this.ws = new WebSocket(this.url);
 
@@ -267,6 +267,7 @@
                         // this.sendFullScriptStatus();
                         // 连接成功后不自动启动机器人，由用户手动触发
                         // this.sendStartRobotCmd()
+                        this.sendQueryRobotStatusCmd()
 
                         this.onConnect?.();
                     };
@@ -362,6 +363,7 @@
                 }
             }
 
+
             sendStartRobotCmd() {
                 if (this.ws?.readyState !== WebSocket.OPEN) {
                     log('连接未就绪，无法发送启动机器人指令', 'error');
@@ -377,6 +379,21 @@
                 };
                 this.ws.send(JSON.stringify(msg));
                 log('发送启动机器人指令', 'info');
+                return true;
+            }
+
+            sendQueryRobotStatusCmd() {
+                if (this.ws?.readyState !== WebSocket.OPEN) {
+                    log('连接未就绪，无法发送启动机器人指令', 'error');
+                    return false;
+                }
+
+                const msg = {
+                    type: 'query_robot_status',
+                    robot_id: 1
+                };
+                this.ws.send(JSON.stringify(msg));
+                log('发送查询机器人状态指令', 'info');
                 return true;
             }
 
@@ -509,9 +526,9 @@
             disconnect() {
                 if (this.ws) {
                     // 如果机器人正在运行，先发送停止指令
-                    if (this.robotState === 'running' || this.robotState === 'starting') {
-                        this.sendStopRobotCmd();
-                    }
+                    // if (this.robotState === 'running' || this.robotState === 'starting') {
+                    //     this.sendStopRobotCmd();
+                    // }
                     // 标记为手动断开，阻止后续自动重连
                     this.isManualDisconnect = true;
                     this.ws.close();

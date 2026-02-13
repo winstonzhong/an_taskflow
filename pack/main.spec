@@ -9,7 +9,7 @@ BASE_DIR = Path(current_file).resolve().parent.parent
 sys.path.append(str(BASE_DIR))
 
 CAIDAO_DIR = BASE_DIR.parent / 'caidao'
-print('CAIDAO_DIR', CAIDAO_DIR)
+# print('CAIDAO_DIR', CAIDAO_DIR)
 
 hidden_import_list = [
     'database_router',
@@ -28,50 +28,31 @@ hidden_import_list += collect_submodules('rest_framework')
 
 hidden_import_list += collect_submodules('pandas')
 hidden_import_list += collect_submodules('numpy')
-# hidden_import_list += [
-#                 'pandas',
-#                 'pandas._libs',
-#                 'pandas._libs.tslibs',
-#                 'pandas._libs.window',
-#                 'pandas._libs.window.aggregations',
-#                 'pandas._libs.window.indexers',
-#                 'pandas._libs.aggregations',
-#                 ]
+
 
 # hidden_import_list += collect_submodules('cryptography')
 
 # hidden_import_list += collect_submodules('pandas')
 # hidden_import_list += collect_submodules('numpy')
 
-datas = collect_data_files('pandas')
 
-# + collect_data_files('numpy')
+
 binaries = collect_dynamic_libs('numpy')
 hidden_import_list += ['numpy', 'numpy.core._multiarray_umath']  # 显式导入缺失模块
-# binaries += [(r'.\venv_win/Lib/site-packages/numpy/.libs/*', 'numpy/.libs')]  # 包含动态库
-# binaries = []
-# datas = []
-# datas = [
-#             (r'.\venv_win\Lib\site-packages\pandas\_libs', 'pandas/_libs'),
-#         ]
-binaries += [
-    # ('/data/data/com.termux/files/usr/lib/libexpat.so.1', '.'),
-    # ('/data/data/com.termux/files/usr/lib/libsqlite3.so', '.'),
-    # ('/data/data/com.termux/files/usr/lib/libffi.so', '.'),
-    # ('/data/data/com.termux/files/usr/lib/python3.12/site-packages/numpy/core/_multiarray_umath.cpython-312.so', '.'),
-    # ('', '.'),
-    # ('', '.'),
-    # ('', '.'),
-    # ('', '.'),
 
+datas = collect_data_files('pandas')
+datas += [
+    ('../templates', './templates'),
+    ('../config', './config'),
+    (f'{CAIDAO_DIR}/queue_redis_json.cfg', '.'),
+    (f'{CAIDAO_DIR}/mobans', './mobans')
 ]
-
 
 a = Analysis(
     ['../main.py'],
     pathex=[CAIDAO_DIR, '../'],
     binaries=binaries,  # 格式: (来源目录, 目标目录), 根据实际情况修改来源目录
-    datas=[('../templates', './templates'), ('../config', './config'), (f'{CAIDAO_DIR}/queue_redis_json.cfg', '.')] + datas,  #(来源目录, 目标目录), 根据实际情况修改来源目录
+    datas=datas,  #(来源目录, 目标目录), 根据实际情况修改来源目录
     hiddenimports=hidden_import_list,
     hookspath=['hooks'],
     hooksconfig={},
