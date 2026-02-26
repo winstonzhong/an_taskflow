@@ -237,7 +237,7 @@ class 定时任务(抽象定时任务):
         for x in 任务列表:
             # print(x)
             x['激活'] = False
-            name = x.get("名称")
+            name = x.get("网络任务")
             qs = cls.objects.filter(名称=name)
             if not qs.exists():
                 cls.objects.create(**x)
