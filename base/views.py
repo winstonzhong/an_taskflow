@@ -196,6 +196,10 @@ class 技能视图(APIView):
         ret_data = api_ret_data()
         force_fetch = request.GET.get('force_fetch')
         user_key = request.GET.get('user_key')
+        
+        # 分页参数
+        page = int(request.GET.get('page', 1))
+        per_page = int(request.GET.get('per_page', 10))
 
         print('force_fetch', force_fetch)
         if force_fetch:
@@ -203,8 +207,22 @@ class 技能视图(APIView):
                 定时任务.从远端导入定时任务(user_key)
             except:
                 traceback.print_exc()
+        
         技能列表 = 定时任务.获取所有技能()
-        ret_data['data'] = 技能列表
+        
+        # 分页处理
+        total = len(技能列表)
+        start_index = (page - 1) * per_page
+        end_index = start_index + per_page
+        paginated_list = 技能列表[start_index:end_index]
+        
+        ret_data['data'] = paginated_list
+        ret_data['pagination'] = {
+            'page': page,
+            'per_page': per_page,
+            'total': total,
+            'has_more': end_index < total
+        }
         return JsonResponse(ret_data)
 
 
