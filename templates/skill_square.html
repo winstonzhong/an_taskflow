@@ -69,6 +69,22 @@
         .skill-icon-text-very-long {
             font-size: 0.9rem;
         }
+        /* 下拉选择框样式修复 */
+        select option {
+            background-color: #1e1e2e;
+            color: #ffffff;
+        }
+        select option:hover {
+            background-color: #2d2d44;
+        }
+        select:focus option {
+            background-color: #1e1e2e;
+        }
+        /* 针对 Firefox 的样式 */
+        select {
+            background-color: #1e1e2e;
+            color: #ffffff;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-darkBg1 to-darkBg2 min-h-screen text-white font-sans">
