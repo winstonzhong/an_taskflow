@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心 - 都包代班儿手机</title>
+    <script src="https://file.j1.sale/api/file/static/js/tailwindcss.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg1: '#1a1a2e',
+                        darkBg2: '#16213e',
+                        primary: '#00d4ff',
+                        primaryDark: '#0099cc',
+                        success: '#4ade80',
+                        warning: '#fbbf24',
+                        danger: '#ef4444',
+                        info: '#60a5fa',
+                        cardBg: 'rgba(255, 255, 255, 0.05)',
+                        cardBgHover: 'rgba(255, 255, 255, 0.1)',
+                        borderLight: 'rgba(255, 255, 255, 0.1)',
+                        borderPrimary: 'rgba(0, 212, 255, 0.5)',
+                        borderPrimaryLight: 'rgba(0, 212, 255, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-darkBg1 to-darkBg2 min-h-screen text-white font-sans">
+    <!-- 顶部导航 -->
+    <header class="sticky top-0 z-50 bg-darkBg1/90 backdrop-blur-md border-b border-borderLight">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="text-xl font-bold text-primary">都包代班儿手机</div>
+                <nav class="flex items-center gap-8">
+                    <a href="01_home_control.html" class="text-white/60 hover:text-white transition-colors">首页</a>
+                    <a href="02_skill_square.html" class="text-white/60 hover:text-white transition-colors">技能广场</a>
+                    <a href="03_demand_square.html" class="text-white/60 hover:text-white transition-colors">需求广场</a>
+                    <a href="#" class="text-primary font-medium border-b-2 border-primary pb-1">个人中心</a>
+                </nav>
+                <div class="flex items-center gap-3">
+                    <span class="text-lg">👑</span>
+                    <span class="text-sm text-white/80">VIP会员</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="max-w-7xl mx-auto p-6">
+        <!-- 页面标题 -->
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold mb-2">个人中心</h1>
+            <p class="text-white/50">管理你的账户信息、套餐和提交的需求</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 左侧：用户信息 + 套餐 -->
+            <div class="space-y-6">
+                <!-- 用户信息卡片 -->
+                <div class="bg-cardBg rounded-xl p-6 border border-borderLight">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primaryDark flex items-center justify-center text-2xl">
+                            👤
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold">VIP用户_8823</h3>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-lg">👑</span>
+                                <span class="text-sm text-primary">年度会员</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-white/50">用户ID</span>
+                            <span class="font-mono">USER_8823</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-white/50">注册时间</span>
+                            <span>2024-01-15</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-white/50">设备绑定</span>
+                            <span class="text-success">2台设备</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 当前套餐卡片 -->
+                <div class="bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl p-6 border border-borderPrimary">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold flex items-center gap-2">
+                            <span class="text-lg">👑</span>
+                            当前套餐
+                        </h3>
+                        <span class="px-2 py-1 bg-primary/30 text-primary rounded text-xs">生效中</span>
+                    </div>
+                    <div class="text-2xl font-bold mb-1">年度会员</div>
+                    <div class="text-sm text-white/60 mb-4">全功能解锁 · 优先客服 · 新功能抢先体验</div>
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-white/50">到期时间</span>
+                            <span class="text-warning font-medium">2025-12-31</span>
+                        </div>
+                        <div class="w-full h-2 bg-black/30 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-primary to-primaryDark rounded-full" style="width: 65%"></div>
+                        </div>
+                        <div class="text-xs text-white/40 text-right">剩余 298 天</div>
+                    </div>
+                    <a href="https://coco.j1.sale/pages/daiban/packages.html" target="_blank" class="block w-full py-2.5 bg-primary rounded-lg text-white font-medium hover:bg-primaryDark transition-all text-center">
+                        立即续费
+                    </a>
+                </div>
+
+                <!-- 快捷操作 -->
+                <div class="bg-cardBg rounded-xl p-6 border border-borderLight">
+                    <h3 class="font-semibold mb-4">快捷操作</h3>
+                    <div class="space-y-2">
+                        <a href="#" class="flex items-center justify-between p-3 bg-black/20 rounded-lg hover:bg-black/30 transition-all group">
+                            <span class="flex items-center gap-3">
+                                <span class="text-lg">🎁</span>
+                                <span>邀请好友得奖励</span>
+                            </span>
+                            <svg class="w-5 h-5 text-white/40 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                        <a href="#" class="flex items-center justify-between p-3 bg-black/20 rounded-lg hover:bg-black/30 transition-all group">
+                            <span class="flex items-center gap-3">
+                                <span class="text-lg">📝</span>
+                                <span>使用反馈</span>
+                            </span>
+                            <svg class="w-5 h-5 text-white/40 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                        <a href="#" class="flex items-center justify-between p-3 bg-black/20 rounded-lg hover:bg-black/30 transition-all group">
+                            <span class="flex items-center gap-3">
+                                <span class="text-lg">📖</span>
+                                <span>使用教程</span>
+                            </span>
+                            <svg class="w-5 h-5 text-white/40 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间和右侧：套餐购买 + 我的需求 -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- 我的需求 -->
+                <div class="bg-cardBg rounded-xl p-6 border border-borderLight">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="font-semibold">我的需求</h3>
+                        <a href="03_demand_square.html" class="text-sm text-primary hover:underline">去需求广场 →</a>
+                    </div>
+                    <div class="space-y-3">
+                        <!-- 需求项 1 -->
+                        <div class="flex items-center justify-between p-4 bg-black/20 rounded-lg">
+                            <div class="flex items-center gap-4">
+                                <span class="text-2xl">📝</span>
+                                <div>
+                                    <div class="font-medium">抖音直播自动发言</div>
+                                    <div class="text-sm text-white/50">提交于 2天前</div>
+                                </div>
+                            </div>
+                            <span class="px-3 py-1 bg-warning/20 text-warning rounded-full text-xs">审核中</span>
+                        </div>
+                        <!-- 需求项 2 -->
+                        <div class="flex items-center justify-between p-4 bg-black/20 rounded-lg">
+                            <div class="flex items-center gap-4">
+                                <span class="text-2xl">✅</span>
+                                <div>
+                                    <div class="font-medium">微信好友自动通过验证</div>
+                                    <div class="text-sm text-white/50">提交于 1个月前</div>
+                                </div>
+                            </div>
+                            <span class="px-3 py-1 bg-success/20 text-success rounded-full text-xs">已上线</span>
+                        </div>
+                        <!-- 需求项 3 -->
+                        <div class="flex items-center justify-between p-4 bg-black/20 rounded-lg">
+                            <div class="flex items-center gap-4">
+                                <span class="text-2xl">💡</span>
+                                <div>
+                                    <div class="font-medium">批量删除微信朋友圈</div>
+                                    <div class="text-sm text-white/50">提交于 2个月前</div>
+                                </div>
+                            </div>
+                            <span class="px-3 py-1 bg-info/20 text-info rounded-full text-xs">开发中</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 已下载技能 -->
+                <div class="bg-cardBg rounded-xl p-6 border border-borderLight">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="font-semibold">已下载技能</h3>
+                        <a href="02_skill_square.html" class="text-sm text-primary hover:underline">去技能广场 →</a>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="p-3 bg-black/20 rounded-lg text-center">
+                            <div class="text-2xl mb-2">💬</div>
+                            <div class="text-sm font-medium">微信自动回复</div>
+                        </div>
+                        <div class="p-3 bg-black/20 rounded-lg text-center">
+                            <div class="text-2xl mb-2">🎵</div>
+                            <div class="text-sm font-medium">抖音自动养号</div>
+                        </div>
+                        <div class="p-3 bg-black/20 rounded-lg text-center">
+                            <div class="text-2xl mb-2">✅</div>
+                            <div class="text-sm font-medium">微信好友管理</div>
+                        </div>
+                        <div class="p-3 bg-black/20 rounded-lg text-center border border-dashed border-borderLight">
+                            <div class="text-2xl mb-2 text-white/30">+</div>
+                            <div class="text-sm text-white/50">更多</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

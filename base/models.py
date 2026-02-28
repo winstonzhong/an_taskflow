@@ -231,14 +231,14 @@ class 定时任务(抽象定时任务):
                 cls.objects.create(**x)
 
     @classmethod
-    def 从远端导入定时任务(cls):
-        任务列表 = get_skills()
-        # print('任务列表', 任务列表)
+    def 从远端导入定时任务(cls, user_key, skill_name=None):
+        任务列表 = get_skills(user_key, skill_name)
+        print('任务列表', 任务列表)
         for x in 任务列表:
             # print(x)
             x['激活'] = False
-            name = x.get("网络任务")
-            qs = cls.objects.filter(名称=name)
+            网络任务 = x.get("网络任务")
+            qs = cls.objects.filter(网络任务=网络任务)
             if not qs.exists():
                 cls.objects.create(**x)
 

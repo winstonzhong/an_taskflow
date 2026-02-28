@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>需求广场 - 都包代班儿手机</title>
+    <script src="https://file.j1.sale/api/file/static/js/tailwindcss.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg1: '#1a1a2e',
+                        darkBg2: '#16213e',
+                        primary: '#00d4ff',
+                        primaryDark: '#0099cc',
+                        success: '#4ade80',
+                        warning: '#fbbf24',
+                        danger: '#ef4444',
+                        info: '#60a5fa',
+                        cardBg: 'rgba(255, 255, 255, 0.05)',
+                        cardBgHover: 'rgba(255, 255, 255, 0.1)',
+                        borderLight: 'rgba(255, 255, 255, 0.1)',
+                        borderPrimary: 'rgba(0, 212, 255, 0.5)',
+                        borderPrimaryLight: 'rgba(0, 212, 255, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .demand-card:hover {
+            transform: translateY(-2px);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-darkBg1 to-darkBg2 min-h-screen text-white font-sans">
+    <!-- 顶部导航 -->
+    <header class="sticky top-0 z-50 bg-darkBg1/90 backdrop-blur-md border-b border-borderLight">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="text-xl font-bold text-primary">都包代班儿手机</div>
+                <nav class="flex items-center gap-8">
+                    <a href="01_home_control.html" class="text-white/60 hover:text-white transition-colors">首页</a>
+                    <a href="02_skill_square.html" class="text-white/60 hover:text-white transition-colors">技能广场</a>
+                    <a href="#" class="text-primary font-medium border-b-2 border-primary pb-1">需求广场</a>
+                    <a href="04_profile.html" class="text-white/60 hover:text-white transition-colors">个人中心</a>
+                </nav>
+                <div class="flex items-center gap-3">
+                    <span class="text-lg">👑</span>
+                    <span class="text-sm text-white/80">VIP会员</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="max-w-7xl mx-auto p-6">
+        <!-- 页面标题 -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-2xl font-bold mb-2">需求广场</h1>
+                <p class="text-white/50">提出你需要的功能需求，或投票支持其他人的想法</p>
+            </div>
+            <button onclick="openDemandModal()" class="px-6 py-3 bg-gradient-to-r from-primary to-primaryDark rounded-lg text-white font-medium hover:shadow-lg hover:shadow-primary/30 transition-all flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                提交需求
+            </button>
+        </div>
+
+        <!-- 筛选栏 -->
+        <div class="bg-cardBg rounded-xl p-4 border border-borderLight mb-6">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <button class="status-filter px-4 py-2 rounded-lg bg-primary/20 text-primary text-sm font-medium border border-primary/50">全部</button>
+                    <button class="status-filter px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all">🔥 热度最高</button>
+                    <button class="status-filter px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all">🆕 最新发布</button>
+                    <button class="status-filter px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all">✅ 已实现</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 需求列表 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <!-- 需求卡片 1 -->
+            <div class="demand-card bg-cardBg rounded-xl p-5 border border-borderLight transition-all duration-300 hover:border-borderPrimaryLight">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-primary/30 flex items-center justify-center text-sm">张</div>
+                        <div>
+                            <div class="text-sm font-medium">张三</div>
+                            <div class="text-xs text-white/40">2天前</div>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 bg-success/20 text-success rounded text-xs flex items-center gap-1">
+                        <span class="status-dot bg-success"></span>
+                        已上线
+                    </span>
+                </div>
+                <h3 class="font-semibold text-lg mb-2">希望增加快手APP支持</h3>
+                <p class="text-sm text-white/50 mb-4 line-clamp-3">现在主要是抖音，希望能支持快手平台的自动化操作，比如自动发布视频、自动互动等功能。快手的用户群体也很大，这个功能会很实用。</p>
+                <div class="flex items-center gap-4 text-sm text-white/40 mb-4">
+                    <span class="px-2 py-1 bg-cardBg border border-borderLight rounded">快手</span>
+                    <span class="px-2 py-1 bg-cardBg border border-borderLight rounded">新平台</span>
+                </div>
+                <div class="flex items-center justify-between pt-4 border-t border-borderLight">
+                    <div class="flex items-center gap-4">
+                        <button class="flex items-center gap-1.5 text-white/60 hover:text-primary transition-colors group">
+                            <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                            </svg>
+                            <span>128</span>
+                        </button>
+                        <button class="flex items-center gap-1.5 text-white/60 hover:text-info transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                            <span>23</span>
+                        </button>
+                    </div>
+                    <span class="text-xs text-white/40">成功率 98%</span>
+                </div>
+            </div>
+
+            <!-- 需求卡片 2 -->
+            <div class="demand-card bg-cardBg rounded-xl p-5 border border-borderLight transition-all duration-300 hover:border-borderPrimaryLight">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-sm">李</div>
+                        <div>
+                            <div class="text-sm font-medium">李明</div>
+                            <div class="text-xs text-white/40">5小时前</div>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 bg-info/20 text-info rounded text-xs flex items-center gap-1">
+                        <span class="status-dot bg-info"></span>
+                        开发中
+                    </span>
+                </div>
+                <h3 class="font-semibold text-lg mb-2">微信聊天记录备份导出</h3>
+                <p class="text-sm text-white/50 mb-4 line-clamp-3">希望能够自动备份微信聊天记录，并导出为HTML或PDF格式保存。对于工作需要保存重要聊天记录的用户来说非常有用。</p>
+                <div class="flex items-center gap-4 text-sm text-white/40 mb-4">
+                    <span class="px-2 py-1 bg-cardBg border border-borderLight rounded">微信</span>
+                    <span class="px-2 py-1 bg-cardBg border border-borderLight rounded">数据导出</span>
+                </div>
+                <div class="flex items-center justify-between pt-4 border-t border-borderLight">
+                    <div class="flex items-center gap-4">
+                        <button class="flex items-center gap-1.5 text-white/60 hover:text-primary transition-colors group">
+                            <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                            </svg>
+                            <span>89</span>
+                        </button>
+                        <button class="flex items-center gap-1.5 text-white/60 hover:text-info transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                            <span>15</span>
+                        </button>
+                    </div>
+                    <span class="text-xs text-white/40">预计下周上线</span>
+                </div>
+            </div>
+
+
+
+            <!-- 需求卡片 4 -->
+            <div class="demand-card bg-cardBg rounded-xl p-5 border border-borderLight transition-all duration-300 hover:border-borderPrimaryLight">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-orange-500/30 flex items-center justify-center text-sm">陈</div>
+                        <div>
+                            <div class="text-sm font-medium">陈小明</div>
+                            <div class="text-xs text-white/40">3天前</div>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 bg-success/20 text-success rounded text-xs flex items-center gap-1">
+                        <span class="status-dot bg-success"></span>
+                        已采纳
+                    </span>
+                </div>
+                <h3 class="font-semibold text-lg mb-2">批量删除微信朋友圈</h3>
+                <p class="text-sm text-white/50 mb-4 line-clamp-3">希望能批量删除微信朋友圈内容，可以按照时间范围筛选，比如删除2020年之前的朋友圈。</p>
+                <div class="flex items-center gap-4 text-sm text-white/40 mb-4">
+                    <span class="px-2 py-1 bg-cardBg border border-borderLight rounded">微信</span>
+                    <span class="px-2 py-1 bg-cardBg border border-borderLight rounded">批量操作</span>
+                </div>
+                <div class="flex items-center justify-between pt-4 border-t border-borderLight">
+                    <div class="flex items-center gap-4">
+                        <button class="flex items-center gap-1.5 text-white/60 hover:text-primary transition-colors group">
+                            <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                            </svg>
+                            <span>234</span>
+                        </button>
+                        <button class="flex items-center gap-1.5 text-white/60 hover:text-info transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                            <span>42</span>
+                        </button>
+                    </div>
+                    <span class="text-xs text-white/40">开发排期中</span>
+                </div>
+            </div>
+
+            <!-- 需求卡片 5 -->
+            <div class="demand-card bg-cardBg rounded-xl p-5 border border-borderLight transition-all duration-300 hover:border-borderPrimaryLight">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-pink-500/30 flex items-center justify-center text-sm">刘</div>
+                        <div>
+                            <div class="text-sm font-medium">刘小红</div>
+                            <div class="text-xs text-white/40">1周前</div>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 bg-white/10 text-white/60 rounded text-xs flex items-center gap-1">
+                        <span class="status-dot bg-white/60"></span>
+                        待评估
+                    </span>
+                </div>
+                <h3 class="font-semibold text-lg mb-2">小红书笔记定时发布</h3>
+                <p class="text-sm text-white/50 mb-4 line-clamp-3">希望增加小红书定时发布功能，可以提前编辑好笔记内容，设置发布时间自动发布。</p>
+                <div class="flex items-center gap-4 text-sm text-white/40 mb-4">
+                    <span class="px-2 py-1 bg-cardBg border border-borderLight rounded">小红书</span>
+                    <span class="px-2 py-1 bg-cardBg border border-borderLight rounded">定时任务</span>
+                </div>
+                <div class="flex items-center justify-between pt-4 border-t border-borderLight">
+                    <div class="flex items-center gap-4">
+                        <button class="flex items-center gap-1.5 text-white/60 hover:text-primary transition-colors group">
+                            <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                            </svg>
+                            <span>167</span>
+                        </button>
+                        <button class="flex items-center gap-1.5 text-white/60 hover:text-info transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                            <span>31</span>
+                        </button>
+                    </div>
+                    <span class="text-xs text-white/40">技术评估中</span>
+                </div>
+            </div>
+
+            <!-- 需求卡片 6 -->
+            <div class="demand-card bg-cardBg rounded-xl p-5 border border-borderLight transition-all duration-300 hover:border-borderPrimaryLight">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center text-sm">赵</div>
+                        <div>
+                            <div class="text-sm font-medium">赵小华</div>
+                            <div class="text-xs text-white/40">4天前</div>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 bg-success/20 text-success rounded text-xs flex items-center gap-1">
+                        <span class="status-dot bg-success"></span>
+                        已上线
+                    </span>
+                </div>
+                <h3 class="font-semibold text-lg mb-2">微信好友自动通过验证</h3>
+                <p class="text-sm text-white/50 mb-4 line-clamp-3">希望能自动通过好友验证请求，并自动发送欢迎语。对于客服账号来说可以大大提高效率。</p>
+                <div class="flex items-center gap-4 text-sm text-white/40 mb-4">
+                    <span class="px-2 py-1 bg-cardBg border border-borderLight rounded">微信</span>
+                    <span class="px-2 py-1 bg-cardBg border border-borderLight rounded">好友管理</span>
+                </div>
+                <div class="flex items-center justify-between pt-4 border-t border-borderLight">
+                    <div class="flex items-center gap-4">
+                        <button class="flex items-center gap-1.5 text-white/60 hover:text-primary transition-colors group">
+                            <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                            </svg>
+                            <span>312</span>
+                        </button>
+                        <button class="flex items-center gap-1.5 text-white/60 hover:text-info transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                            <span>56</span>
+                        </button>
+                    </div>
+                    <span class="text-xs text-success">✓ 技能已上线</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加载更多 -->
+        <div class="mt-8 text-center">
+            <button class="px-8 py-3 bg-cardBg border border-borderLight rounded-lg text-white/70 hover:bg-cardBgHover hover:text-white transition-all">
+                加载更多
+            </button>
+        </div>
+    </main>
+
+    <!-- 提交需求弹窗 -->
+    <div id="demandModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-darkBg1 rounded-2xl border border-borderLight w-[500px] max-h-[90vh] flex flex-col shadow-2xl">
+            <!-- 弹窗头部 -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-borderLight">
+                <h3 class="text-lg font-semibold">提交新需求</h3>
+                <button onclick="closeDemandModal()" class="text-white/40 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 弹窗内容 -->
+            <div class="p-6 overflow-y-auto">
+                <form id="demandForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-white/60 mb-2">需求标题 <span class="text-danger">*</span></label>
+                        <input type="text" placeholder="简短描述你的需求..." 
+                            class="w-full px-4 py-3 bg-cardBg border border-borderLight rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-primary transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-white/60 mb-2">详细描述 <span class="text-danger">*</span></label>
+                        <textarea placeholder="详细描述你需要的功能，包括使用场景、期望效果等..." rows="4"
+                            class="w-full px-4 py-3 bg-cardBg border border-borderLight rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-primary transition-all resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-white/60 mb-2">相关平台</label>
+                        <div class="flex flex-wrap gap-2">
+                            <label class="flex items-center gap-2 px-3 py-2 bg-cardBg rounded-lg cursor-pointer hover:bg-cardBgHover transition-all">
+                                <input type="checkbox" class="w-4 h-4 rounded border-borderLight bg-cardBg text-primary focus:ring-primary">
+                                <span class="text-sm">微信</span>
+                            </label>
+                            <label class="flex items-center gap-2 px-3 py-2 bg-cardBg rounded-lg cursor-pointer hover:bg-cardBgHover transition-all">
+                                <input type="checkbox" class="w-4 h-4 rounded border-borderLight bg-cardBg text-primary focus:ring-primary">
+                                <span class="text-sm">抖音</span>
+                            </label>
+                            <label class="flex items-center gap-2 px-3 py-2 bg-cardBg rounded-lg cursor-pointer hover:bg-cardBgHover transition-all">
+                                <input type="checkbox" class="w-4 h-4 rounded border-borderLight bg-cardBg text-primary focus:ring-primary">
+                                <span class="text-sm">小红书</span>
+                            </label>
+                            <label class="flex items-center gap-2 px-3 py-2 bg-cardBg rounded-lg cursor-pointer hover:bg-cardBgHover transition-all">
+                                <input type="checkbox" class="w-4 h-4 rounded border-borderLight bg-cardBg text-primary focus:ring-primary">
+                                <span class="text-sm">微博</span>
+                            </label>
+                            <label class="flex items-center gap-2 px-3 py-2 bg-cardBg rounded-lg cursor-pointer hover:bg-cardBgHover transition-all">
+                                <input type="checkbox" class="w-4 h-4 rounded border-borderLight bg-cardBg text-primary focus:ring-primary">
+                                <span class="text-sm">其他</span>
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 弹窗底部 -->
+            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-borderLight">
+                <button onclick="closeDemandModal()" class="px-5 py-2 bg-cardBg border border-borderLight rounded-lg text-white hover:bg-cardBgHover transition-all">
+                    取消
+                </button>
+                <button onclick="submitDemand()" class="px-5 py-2 bg-gradient-to-r from-primary to-primaryDark rounded-lg text-white hover:shadow-lg hover:shadow-primary/30 transition-all">
+                    提交需求
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 打开提交需求弹窗
+        function openDemandModal() {
+            const modal = document.getElementById('demandModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        // 关闭提交需求弹窗
+        function closeDemandModal() {
+            const modal = document.getElementById('demandModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // 提交需求
+        function submitDemand() {
+            // 这里调用API提交需求
+            alert('需求已提交，审核通过后将展示在需求广场！');
+            closeDemandModal();
+        }
+
+        // 点击弹窗外部关闭
+        document.getElementById('demandModal').addEventListener('click', (e) => {
+            if (e.target.id === 'demandModal') {
+                closeDemandModal();
+            }
+        });
+
+        // 筛选切换
+        document.querySelectorAll('.status-filter').forEach(filter => {
+            filter.addEventListener('click', () => {
+                document.querySelectorAll('.status-filter').forEach(f => {
+                    f.classList.remove('bg-primary/20', 'text-primary', 'border-primary/50');
+                    f.classList.add('bg-cardBg', 'text-white/70', 'border-borderLight');
+                });
+                filter.classList.remove('bg-cardBg', 'text-white/70', 'border-borderLight');
+                filter.classList.add('bg-primary/20', 'text-primary', 'border-primary/50');
+            });
+        });
+    </script>
+</body>
+</html>

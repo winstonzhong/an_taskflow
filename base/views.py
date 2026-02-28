@@ -1,7 +1,10 @@
+import json
 import traceback
 
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.views import APIView
 
 from base.models import 定时任务, 配置表
@@ -192,12 +195,357 @@ class 技能视图(APIView):
     def get(self, request):
         ret_data = api_ret_data()
         force_fetch = request.GET.get('force_fetch')
+        user_key = request.GET.get('user_key')
+
         print('force_fetch', force_fetch)
         if force_fetch:
             try:
-                定时任务.从远端导入定时任务()
+                定时任务.从远端导入定时任务(user_key)
             except:
                 traceback.print_exc()
         技能列表 = 定时任务.获取所有技能()
         ret_data['data'] = 技能列表
         return JsonResponse(ret_data)
+
+
+# ==================== 新增：技能配置相关接口 ====================
+
+@require_http_methods(["GET"])
+def get_skill_config(request):
+    """
+    读取技能配置
+    
+    从"定时任务"表中根据 group_name 查询，返回"配置"字段内容
+    
+    GET /base/skill_config?skill_name=微信自动回复
+    
+    Parameters:
+        - skill_name: 技能名称（对应 group_name 字段）
+    
+    Response:
+    {
+        "code": 2000,
+        "data": {
+            "skill_name": "微信自动回复",
+            "config": {
+                "回复设置": { ... },
+                "高级选项": { ... },
+                "通知设置": { ... }
+            }
+        }
+    }
+    """
+    skill_name = request.GET.get('skill_name')
+    
+    if not skill_name:
+        return JsonResponse({
+            "code": 4000,
+            "message": "缺少 skill_name 参数"
+        }, status=400)
+    
+    # 查询 group_name 匹配且 配置 不为空的记录
+    task = 定时任务.objects.filter(
+        group_name=skill_name,
+        配置__isnull=False
+    ).exclude(配置={}).first()
+    
+    if task and task.配置:
+        return JsonResponse({
+            "code": 2000,
+            "data": {
+                "skill_name": skill_name,
+                "config": task.配置
+            }
+        })
+    
+    # 返回默认配置
+    return JsonResponse({
+        "code": 2000,
+        "data": {
+            "skill_name": skill_name,
+            "config": {
+                "回复设置": {
+                    "reply_template": "你好，我现在不方便回复，稍后联系你。",
+                    "delay_time": 5,
+                    "enable_keyword": False
+                },
+                "高级选项": {
+                    "auto_at_reply": False,
+                    "quiet_hours_start": "22:00",
+                    "quiet_hours_end": "08:00"
+                },
+                "通知设置": {
+                    "enable_sound": True,
+                    "enable_vibrate": False,
+                    "notification_priority": "high"
+                }
+            }
+        }
+    })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def save_skill_config(request):
+    """
+    保存技能配置
+    
+    保存到"定时任务"表的"配置"字段中
+    
+    POST /base/skill_config
+    
+    Request Body:
+    {
+        "skill_name": "微信自动回复",
+        "config": {
+            "回复设置": { ... },
+            "高级选项": { ... },
+            "通知设置": { ... }
+        }
+    }
+    
+    Response:
+    {
+        "code": 2000,
+        "message": "保存成功"
+    }
+    """
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            "code": 4000,
+            "message": "请求体必须是有效的JSON"
+        }, status=400)
+    
+    skill_name = data.get('skill_name')
+    config = data.get('config', {})
+    
+    if not skill_name:
+        return JsonResponse({
+            "code": 4000,
+            "message": "缺少 skill_name 参数"
+        }, status=400)
+    
+    # 查询所有 group_name 匹配的记录
+    tasks = 定时任务.objects.filter(group_name=skill_name).order_by('id')
+    
+    if not tasks.exists():
+        return JsonResponse({
+            "code": 4004,
+            "message": "技能不存在"
+        }, status=404)
+    
+    # 查找配置不为空的记录
+    task_with_config = tasks.filter(配置__isnull=False).exclude(配置={}).first()
+    
+    if task_with_config:
+        # 有配置不为空的记录，更新该记录
+        task_with_config.配置 = config
+        task_with_config.save(update_fields=['配置'])
+    else:
+        # 所有记录配置都为空，更新第一条
+        first_task = tasks.first()
+        first_task.配置 = config
+        first_task.save(update_fields=['配置'])
+    
+    return JsonResponse({
+        "code": 2000,
+        "message": "保存成功"
+    })
+
+
+@require_http_methods(["GET"])
+def skill_download_status(request):
+    """
+    查询技能下载状态
+    
+    根据技能名称查询"定时任务"表，判断技能是否已下载
+    
+    GET /base/skill/download_status?skill_name=微信自动回复
+    
+    Parameters:
+        - skill_name: 技能名称（对应 group_name 字段）
+    
+    Response:
+    {
+        "code": 2000,
+        "data": {
+            "skill_name": "微信自动回复",
+            "is_downloaded": true
+        }
+    }
+    """
+    skill_name = request.GET.get('skill_name')
+    
+    if not skill_name:
+        return JsonResponse({
+            "code": 4000,
+            "message": "缺少 skill_name 参数"
+        }, status=400)
+    
+    # 查询定时任务表
+    task = 定时任务.objects.filter(group_name=skill_name).first()
+    
+    is_downloaded = False
+    if task and hasattr(task, '激活') and task.激活:
+        is_downloaded = True
+    
+    return JsonResponse({
+        "code": 2000,
+        "data": {
+            "skill_name": skill_name,
+            "is_downloaded": is_downloaded
+        }
+    })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def install_skill(request):
+    """
+    安装/下载技能
+    
+    将技能保存到定时任务表
+    
+    POST /base/skill/install
+    
+    Request Body:
+    {
+        "skill_name": "微信自动回复",
+        "skill_data": { ... }
+    }
+    
+    Response:
+    {
+        "code": 2000,
+        "message": "安装成功"
+    }
+    """
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            "code": 4000,
+            "message": "请求体必须是有效的JSON"
+        }, status=400)
+    
+    skill_name = data.get('skill_name')
+    user_key = data.get('user_key')
+    
+    if not skill_name or not user_key:
+        return JsonResponse({
+            "code": 4000,
+            "message": "缺少必要参数"
+        }, status=400)
+
+    定时任务.从远端导入定时任务(user_key, skill_name)
+
+    # 检查
+    return JsonResponse({
+        "code": 2000,
+        "message": "安装成功"
+    })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def uninstall_skill(request):
+    """
+    卸载/删除技能
+    
+    从定时任务表中删除或禁用技能
+    
+    POST /base/skill/uninstall
+    
+    Request Body:
+    {
+        "skill_name": "微信自动回复"
+    }
+    
+    Response:
+    {
+        "code": 2000,
+        "message": "卸载成功"
+    }
+    """
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            "code": 4000,
+            "message": "请求体必须是有效的JSON"
+        }, status=400)
+    
+    skill_name = data.get('skill_name')
+    
+    if not skill_name:
+        return JsonResponse({
+            "code": 4000,
+            "message": "缺少 skill_name 参数"
+        }, status=400)
+    
+    # 查询并删除或禁用
+    tasks = 定时任务.objects.filter(group_name=skill_name)
+    if tasks.exists():
+        # 选择禁用而不是删除，保留配置
+        tasks.update(激活=False)
+    
+    return JsonResponse({
+        "code": 2000,
+        "message": "卸载成功"
+    })
+
+
+@require_http_methods(["GET"])
+def download_skills(request):
+    """
+    获取所有已下载的技能
+    
+    从定时任务表中获取所有已激活的技能（即已下载的技能）
+    
+    GET /base/skill/download_skills
+    
+    Response:
+    {
+        "code": 2000,
+        "data": {
+            "skills": ["微信自动回复", "抖音自动养号", ...]
+        }
+    }
+    """
+    try:
+        # 调用定时任务模型的获取所有技能方法
+        技能列表 = 定时任务.获取所有技能()
+        
+        # 提取技能名称列表
+        skill_names = [skill.get('group_name') for skill in 技能列表 if skill.get('group_name')]
+        
+        return JsonResponse({
+            "code": 2000,
+            "data": {
+                "skills": skill_names
+            }
+        })
+    except Exception as e:
+        return JsonResponse({
+            "code": 5000,
+            "message": f"获取已下载技能失败: {str(e)}"
+        }, status=500)
+
+
+# ==================== 新增：页面视图函数 ====================
+
+def skill_square_page(request):
+    """技能广场页面"""
+    return render(request, 'skill_square.html')
+
+
+def demand_square_page(request):
+    """需求广场页面"""
+    return render(request, 'demand_square.html')
+
+
+def profile_page(request):
+    """个人中心页面"""
+    return render(request, 'profile.html')

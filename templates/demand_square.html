@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>需求广场 - 都包代班儿手机</title>
+    <script src="https://file.j1.sale/api/file/static/js/tailwindcss.js"></script>
+    <script src="https://file.j1.sale/api/file/static/js/utils.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg1: '#1a1a2e',
+                        darkBg2: '#16213e',
+                        primary: '#00d4ff',
+                        primaryDark: '#0099cc',
+                        success: '#4ade80',
+                        warning: '#fbbf24',
+                        danger: '#ef4444',
+                        info: '#60a5fa',
+                        cardBg: 'rgba(255, 255, 255, 0.05)',
+                        cardBgHover: 'rgba(255, 255, 255, 0.1)',
+                        borderLight: 'rgba(255, 255, 255, 0.1)',
+                        borderPrimary: 'rgba(0, 212, 255, 0.5)',
+                        borderPrimaryLight: 'rgba(0, 212, 255, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .demand-card:hover {
+            transform: translateY(-2px);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .status-filter.active {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+        .loading-skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .vote-btn.voted {
+            color: #00d4ff;
+        }
+        .vote-btn.voted svg {
+            fill: currentColor;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-darkBg1 to-darkBg2 min-h-screen text-white font-sans">
+    <!-- 顶部导航 -->
+    <header class="sticky top-0 z-50 bg-darkBg1/90 backdrop-blur-md border-b border-borderLight">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="text-xl font-bold text-primary">都包代班儿手机</div>
+                <nav class="flex items-center gap-8" id="mainNav">
+                    <a href="/base/control" class="text-white/60 hover:text-white transition-colors nav-link">首页</a>
+                    <a href="/base/skill_square" class="text-white/60 hover:text-white transition-colors nav-link">技能广场</a>
+                    <a href="/base/demand_square" class="text-primary font-medium border-b-2 border-primary pb-1 nav-link">需求广场</a>
+                    <a href="/base/profile" class="text-white/60 hover:text-white transition-colors nav-link">个人中心</a>
+                </nav>
+                <div class="flex items-center gap-3">
+                    <span class="text-lg">👑</span>
+                    <span class="text-sm text-white/80" id="headerMemberType">VIP会员</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="max-w-7xl mx-auto p-6">
+        <!-- 页面标题 -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-2xl font-bold mb-2">需求广场</h1>
+                <p class="text-white/50">提出你需要的功能需求，或投票支持其他人的想法</p>
+            </div>
+            <button onclick="openDemandModal()" class="px-6 py-3 bg-gradient-to-r from-primary to-primaryDark rounded-lg text-white font-medium hover:shadow-lg hover:shadow-primary/30 transition-all flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                提交需求
+            </button>
+        </div>
+
+        <!-- 筛选栏 -->
+        <div class="bg-cardBg rounded-xl p-4 border border-borderLight mb-6">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2" id="statusFilters">
+                    <button class="status-filter active px-4 py-2 rounded-lg border text-sm font-medium transition-all" data-status="all">全部</button>
+                    <button class="status-filter px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all" data-status="hot">🔥 热度最高</button>
+                    <button class="status-filter px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all" data-status="new">🆕 最新发布</button>
+                    <button class="status-filter px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all" data-status="released">✅ 已实现</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 需求列表 -->
+        <div id="demandList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <!-- 加载中骨架屏 -->
+            <div class="loading-skeleton rounded-xl h-[200px]"></div>
+            <div class="loading-skeleton rounded-xl h-[200px]"></div>
+            <div class="loading-skeleton rounded-xl h-[200px]"></div>
+        </div>
+
+        <!-- 加载更多 -->
+        <div class="mt-8 text-center">
+            <button id="loadMoreBtn" class="px-8 py-3 bg-cardBg border border-borderLight rounded-lg text-white/70 hover:bg-cardBgHover hover:text-white transition-all">
+                加载更多
+            </button>
+        </div>
+    </main>
+
+    <!-- 提交需求弹窗 -->
+    <div id="demandModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-darkBg1 rounded-2xl border border-borderLight w-[500px] max-h-[90vh] flex flex-col shadow-2xl">
+            <!-- 弹窗头部 -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-borderLight">
+                <h3 class="text-lg font-semibold">提交新需求</h3>
+                <button onclick="closeDemandModal()" class="text-white/40 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 弹窗内容 -->
+            <div class="p-6 overflow-y-auto">
+                <form id="demandForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-white/60 mb-2">需求标题 <span class="text-danger">*</span></label>
+                        <input type="text" id="demandTitle" placeholder="简短描述你的需求..." 
+                            class="w-full px-4 py-3 bg-cardBg border border-borderLight rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-primary transition-all">
+                        <p class="text-xs text-white/40 mt-1">建议控制在20字以内，如：微信自动回复功能</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-white/60 mb-2">详细描述 <span class="text-danger">*</span></label>
+                        <textarea id="demandDesc" placeholder="详细描述你需要的功能，包括使用场景、期望效果等..." rows="4"
+                            class="w-full px-4 py-3 bg-cardBg border border-borderLight rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-primary transition-all resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-white/60 mb-2">相关平台</label>
+                        <div class="flex flex-wrap gap-2" id="platformCheckboxes">
+                            <label class="flex items-center gap-2 px-3 py-2 bg-cardBg rounded-lg cursor-pointer hover:bg-cardBgHover transition-all">
+                                <input type="checkbox" value="微信" class="platform-checkbox w-4 h-4 rounded border-borderLight bg-cardBg text-primary focus:ring-primary">
+                                <span class="text-sm">微信</span>
+                            </label>
+                            <label class="flex items-center gap-2 px-3 py-2 bg-cardBg rounded-lg cursor-pointer hover:bg-cardBgHover transition-all">
+                                <input type="checkbox" value="抖音" class="platform-checkbox w-4 h-4 rounded border-borderLight bg-cardBg text-primary focus:ring-primary">
+                                <span class="text-sm">抖音</span>
+                            </label>
+                            <label class="flex items-center gap-2 px-3 py-2 bg-cardBg rounded-lg cursor-pointer hover:bg-cardBgHover transition-all">
+                                <input type="checkbox" value="小红书" class="platform-checkbox w-4 h-4 rounded border-borderLight bg-cardBg text-primary focus:ring-primary">
+                                <span class="text-sm">小红书</span>
+                            </label>
+                            <label class="flex items-center gap-2 px-3 py-2 bg-cardBg rounded-lg cursor-pointer hover:bg-cardBgHover transition-all">
+                                <input type="checkbox" value="微博" class="platform-checkbox w-4 h-4 rounded border-borderLight bg-cardBg text-primary focus:ring-primary">
+                                <span class="text-sm">微博</span>
+                            </label>
+                            <label class="flex items-center gap-2 px-3 py-2 bg-cardBg rounded-lg cursor-pointer hover:bg-cardBgHover transition-all">
+                                <input type="checkbox" value="其他" class="platform-checkbox w-4 h-4 rounded border-borderLight bg-cardBg text-primary focus:ring-primary">
+                                <span class="text-sm">其他</span>
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 弹窗底部 -->
+            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-borderLight">
+                <button onclick="closeDemandModal()" class="px-5 py-2 bg-cardBg border border-borderLight rounded-lg text-white hover:bg-cardBgHover transition-all">
+                    取消
+                </button>
+                <button onclick="submitDemand()" id="submitBtn" class="px-5 py-2 bg-gradient-to-r from-primary to-primaryDark rounded-lg text-white hover:shadow-lg hover:shadow-primary/30 transition-all">
+                    提交需求
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API 配置
+        // const DAIBAN_API_HOST = 'http://192.168.0.117:8000';
+        const DAIBAN_API_HOST = 'https://coco.j1.sale';
+        // 获取 user_key
+        function getUserKey() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('sn') || localStorage.getItem('user_key') || '';
+        }
+        
+        // 获取带 sn 参数的 URL
+        function getUrlWithSn(path) {
+            const sn = getUserKey();
+            if (sn) {
+                return `${path}?sn=${sn}`;
+            }
+            return path;
+        }
+        
+        // 更新所有导航链接
+        function updateNavLinks() {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                const originalHref = link.getAttribute('href');
+                link.href = getUrlWithSn(originalHref);
+            });
+        }
+        
+        // 状态管理
+        let currentPage = 1;
+        let currentStatus = 'all';
+        let isLoading = false;
+        let hasMore = true;
+
+        // 状态配置
+        const statusConfig = {
+            'released': { label: '已上线', class: 'bg-success/20 text-success', dot: 'bg-success' },
+            'developing': { label: '开发中', class: 'bg-info/20 text-info', dot: 'bg-info' },
+            'approved': { label: '已采纳', class: 'bg-primary/20 text-primary', dot: 'bg-primary' },
+            'pending': { label: '审核中', class: 'bg-warning/20 text-warning', dot: 'bg-warning' },
+            'rejected': { label: '已拒绝', class: 'bg-white/10 text-white/60', dot: 'bg-white/60' }
+        };
+
+        // 格式化时间
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+            
+            if (minutes < 1) return '刚刚';
+            if (minutes < 60) return `${minutes}分钟前`;
+            if (hours < 24) return `${hours}小时前`;
+            if (days < 7) return `${days}天前`;
+            return date.toLocaleDateString('zh-CN');
+        }
+
+        // 获取需求列表
+        async function fetchDemands(page = 1, append = false) {
+            if (isLoading || (!append && !hasMore)) return;
+            
+            isLoading = true;
+            const userKey = getUserKey();
+            
+            const params = new URLSearchParams({
+                page: page,
+                size: 20,
+                sort: currentStatus === 'hot' ? 'hot' : (currentStatus === 'new' ? 'new' : 'hot')
+            });
+            
+            // 状态筛选（非排序类型）
+            if (currentStatus && !['all', 'hot', 'new'].includes(currentStatus)) {
+                params.append('status', currentStatus);
+            }
+            
+            if (userKey) {
+                params.append('user_key', userKey);
+            }
+
+            try {
+                const response = await fetch(`${DAIBAN_API_HOST}/daiban/demands?${params}`);
+                const result = await response.json();
+                
+                if (result.code === 2000) {
+                    const data = result.data || {};
+                    const demands = data.list || [];
+                    hasMore = demands.length === 20;
+                    
+                    if (demands.length === 0 && page === 1) {
+                        renderEmpty();
+                    } else {
+                        renderDemands(demands, append);
+                    }
+                    
+                    currentPage = page;
+                } else {
+                    throw new Error(result.message || '获取需求列表失败');
+                }
+            } catch (error) {
+                console.error('获取需求列表失败:', error);
+                if (page === 1) {
+                    renderError('获取需求列表失败，请稍后重试');
+                }
+            } finally {
+                isLoading = false;
+                updateLoadMoreBtn();
+            }
+        }
+
+        // 渲染空状态
+        function renderEmpty() {
+            const list = document.getElementById('demandList');
+            list.innerHTML = `
+                <div class="col-span-full text-center py-12 text-white/50">
+                    <div class="text-4xl mb-4">📭</div>
+                    <div>暂无需求</div>
+                    <button onclick="openDemandModal()" class="mt-4 px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all">
+                        提交第一个需求
+                    </button>
+                </div>
+            `;
+        }
+
+        // 渲染错误状态
+        function renderError(message) {
+            const list = document.getElementById('demandList');
+            list.innerHTML = `
+                <div class="col-span-full text-center py-12 text-white/50">
+                    <div class="text-4xl mb-4">⚠️</div>
+                    <div>${message}</div>
+                    <button onclick="fetchDemands(1, false)" class="mt-4 px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all">
+                        重新加载
+                    </button>
+                </div>
+            `;
+        }
+
+        // 渲染需求卡片
+        function renderDemands(demands, append = false) {
+            const list = document.getElementById('demandList');
+            
+            if (!append) {
+                list.innerHTML = '';
+            }
+
+            demands.forEach(demand => {
+                const status = statusConfig[demand.status] || statusConfig['pending'];
+                const isVoted = demand.is_voted;
+                
+                const card = document.createElement('div');
+                card.className = 'demand-card bg-cardBg rounded-xl p-5 border border-borderLight transition-all duration-300 hover:border-borderPrimaryLight';
+                card.innerHTML = `
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-primary/30 flex items-center justify-center text-sm">
+                                ${demand.avatar ? `<img src="${demand.avatar}" class="w-full h-full rounded-full">` : (demand.author ? demand.author[0] : 'U')}
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium">${demand.author || '匿名用户'}</div>
+                                <div class="text-xs text-white/40">${formatTime(demand.created_at)}</div>
+                            </div>
+                        </div>
+                        <span class="px-2 py-1 ${status.class} rounded text-xs flex items-center gap-1">
+                            <span class="status-dot ${status.dot}"></span>
+                            ${status.label}
+                        </span>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">${demand.title}</h3>
+                    <p class="text-sm text-white/50 mb-4 line-clamp-3">${demand.content || demand.description || '暂无描述'}</p>
+                    <div class="flex items-center gap-4 text-sm text-white/40 mb-4">
+                        ${(demand.platforms || []).map(p => `<span class="px-2 py-1 bg-cardBg border border-borderLight rounded">${p}</span>`).join('')}
+                    </div>
+                    <div class="flex items-center justify-between pt-4 border-t border-borderLight">
+                        <div class="flex items-center gap-4">
+                            <button onclick="voteDemand('${demand.id}', this)" 
+                                class="vote-btn flex items-center gap-1.5 ${isVoted ? 'voted text-primary' : 'text-white/60 hover:text-primary'} transition-colors group">
+                                <svg class="w-5 h-5 ${isVoted ? 'scale-110' : 'group-hover:scale-110'} transition-transform" fill="${isVoted ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                                </svg>
+                                <span class="vote-count">${demand.votes || 0}</span>
+                            </button>
+                            <button class="flex items-center gap-1.5 text-white/60 hover:text-info transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                </svg>
+                                <span>${demand.comments || 0}</span>
+                            </button>
+                        </div>
+                        ${demand.status === 'released' ? '<span class="text-xs text-success">✓ 技能已上线</span>' : ''}
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        // 更新加载更多按钮
+        function updateLoadMoreBtn() {
+            const btn = document.getElementById('loadMoreBtn');
+            if (isLoading) {
+                btn.innerHTML = '<span class="animate-spin">⟳</span> 加载中...';
+                btn.disabled = true;
+            } else if (!hasMore) {
+                btn.innerHTML = '没有更多了';
+                btn.disabled = true;
+            } else {
+                btn.innerHTML = '加载更多';
+                btn.disabled = false;
+            }
+        }
+
+        // 投票
+        async function voteDemand(demandId, btn) {
+            const userKey = getUserKey();
+            if (!userKey) {
+                alert('请先登录');
+                return;
+            }
+            
+            const isVoted = btn.classList.contains('voted');
+            const countSpan = btn.querySelector('.vote-count');
+            
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`${DAIBAN_API_HOST}/daiban/demand/vote`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        user_key: userKey,
+                        demand_id: demandId
+                    })
+                });
+                const result = await response.json();
+                
+                if (result.code === 2000) {
+                    const data = result.data || {};
+                    countSpan.textContent = data.votes || 0;
+                    
+                    if (data.is_voted) {
+                        btn.classList.add('voted', 'text-primary');
+                        btn.classList.remove('text-white/60');
+                        btn.querySelector('svg').setAttribute('fill', 'currentColor');
+                    } else {
+                        btn.classList.remove('voted', 'text-primary');
+                        btn.classList.add('text-white/60');
+                        btn.querySelector('svg').setAttribute('fill', 'none');
+                    }
+                } else {
+                    throw new Error(result.message || '投票失败');
+                }
+            } catch (error) {
+                console.error('投票失败:', error);
+                alert('投票失败，请重试');
+            }
+            btn.disabled = false;
+        }
+
+        // 打开提交需求弹窗
+        function openDemandModal() {
+            const userKey = getUserKey();
+            if (!userKey) {
+                alert('请先登录');
+                return;
+            }
+            
+            const modal = document.getElementById('demandModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        // 关闭提交需求弹窗
+        function closeDemandModal() {
+            const modal = document.getElementById('demandModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            // 清空表单
+            document.getElementById('demandTitle').value = '';
+            document.getElementById('demandDesc').value = '';
+            document.querySelectorAll('.platform-checkbox').forEach(cb => cb.checked = false);
+        }
+
+        // 提交需求
+        async function submitDemand() {
+            const userKey = getUserKey();
+            if (!userKey) {
+                alert('请先登录');
+                return;
+            }
+            
+            const title = document.getElementById('demandTitle').value.trim();
+            const content = document.getElementById('demandDesc').value.trim();
+            const platforms = Array.from(document.querySelectorAll('.platform-checkbox:checked')).map(cb => cb.value);
+
+            if (!title) {
+                alert('请输入需求标题');
+                return;
+            }
+            if (title.length > 50) {
+                alert('标题不能超过50字');
+                return;
+            }
+            if (!content) {
+                alert('请输入详细描述');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="animate-spin">⟳</span> 提交中';
+
+            const data = {
+                user_key: userKey,
+                title: title,
+                content: content,
+                platforms: platforms
+            };
+
+            try {
+                const response = await fetch(`${DAIBAN_API_HOST}/daiban/demand`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                
+                if (result.code === 2000) {
+                    alert('需求已提交，审核通过后将展示在需求广场！');
+                    closeDemandModal();
+                    // 刷新列表
+                    currentPage = 1;
+                    hasMore = true;
+                    fetchDemands(1, false);
+                } else {
+                    throw new Error(result.message || '提交失败');
+                }
+            } catch (error) {
+                console.error('提交失败:', error);
+                alert('提交失败: ' + error.message);
+            }
+            
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '提交需求';
+        }
+
+        // 状态筛选切换
+        document.querySelectorAll('.status-filter').forEach(filter => {
+            filter.addEventListener('click', () => {
+                document.querySelectorAll('.status-filter').forEach(f => {
+                    f.classList.remove('active');
+                    f.classList.add('bg-cardBg', 'text-white/70', 'border-borderLight');
+                });
+                filter.classList.add('active');
+                filter.classList.remove('bg-cardBg', 'text-white/70', 'border-borderLight');
+                
+                currentStatus = filter.dataset.status;
+                currentPage = 1;
+                hasMore = true;
+                fetchDemands(1, false);
+            });
+        });
+
+        // 加载更多
+        document.getElementById('loadMoreBtn').addEventListener('click', () => {
+            if (!isLoading && hasMore) {
+                fetchDemands(currentPage + 1, true);
+            }
+        });
+
+        // 点击弹窗外部关闭
+        document.getElementById('demandModal').addEventListener('click', (e) => {
+            if (e.target.id === 'demandModal') {
+                closeDemandModal();
+            }
+        });
+
+        // 加载用户信息
+        async function loadUserInfo() {
+            const userKey = getUserKey();
+            if (!userKey) {
+                document.getElementById('headerMemberType').textContent = '未登录';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${DAIBAN_API_HOST}/daiban/client/user_info?sn=${userKey}`);
+                const result = await response.json();
+                
+                if (result.code === 2000) {
+                    const user = result.data;
+                    const statusText = user.is_valid ? 'VIP会员' : (user.package ? '已过期' : '未开通');
+                    document.getElementById('headerMemberType').textContent = statusText;
+                } else {
+                    document.getElementById('headerMemberType').textContent = '未登录';
+                }
+            } catch (error) {
+                console.error('获取用户信息失败:', error);
+                document.getElementById('headerMemberType').textContent = '未登录';
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            updateNavLinks();
+            // 更新所有内部链接
+            document.querySelectorAll('.internal-link').forEach(link => {
+                const originalHref = link.getAttribute('href');
+                link.href = getUrlWithSn(originalHref);
+            });
+            // 更新所有非导航链接
+            document.querySelectorAll('a[href^="/base/"]:not(.nav-link):not(.internal-link)').forEach(link => {
+                const originalHref = link.getAttribute('href');
+                if (!originalHref.includes('?')) {
+                    link.href = getUrlWithSn(originalHref);
+                }
+            });
+            loadUserInfo();
+            fetchDemands(1, false);
+        });
+    </script>
+</body>
+</html>

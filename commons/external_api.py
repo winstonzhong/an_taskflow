@@ -1,9 +1,9 @@
 import requests
 
 
-HOST = 'https://coco.j1.sale'
+# HOST = 'https://coco.j1.sale'
 
-# HOST = 'http://localhost:8000'
+HOST = 'http://localhost:8000'
 
 
 def push_task_data(data):
@@ -22,7 +22,9 @@ def push_sys_info(data):
     return resp.json()
 
 
-def get_skills():
-    url = f'{HOST}/daiban/client/skills'
+def get_skills(user_key=None, skill_name=None):
+    skill_name_arg = f'&skill_name={skill_name}' if skill_name else ''
+    url = f'{HOST}/daiban/client/skills?user_key={user_key}{skill_name_arg}'
+
     resp = requests.get(url)
     return resp.json().get('data')

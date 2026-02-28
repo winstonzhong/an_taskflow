@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>都包代班儿手机</title>
+    <title>都包代班儿手机 - 首页</title>
     <!-- 引入 Tailwind CSS CDN -->
     <script src="https://file.j1.sale/api/file/static/js/tailwindcss.js"></script>
     <!-- 配置 Tailwind 自定义颜色和工具类 -->
@@ -37,8 +37,7 @@
                         }
                     },
                     width: {
-                        // 新增自定义宽度类，替代无效的 w-70，适配手机屏幕
-                        'phone': '280px', 
+                        'phone': '280px',
                     }
                 }
             }
@@ -68,7 +67,6 @@
                 color: theme('colors.success');
                 font-size: 14px;
             }
-            /* 等待更新状态样式 */
             .script-pending::after {
                 content: "⟳";
                 position: absolute;
@@ -83,68 +81,93 @@
                 0% { transform: translateY(-50%) rotate(0deg); }
                 100% { transform: translateY(-50%) rotate(360deg); }
             }
-            /* 补充手机屏幕内部容器的绝对定位工具类，确保全屏填充 */
             .inset-0 {
                 top: 0;
                 right: 0;
                 bottom: 0;
                 left: 0;
             }
-            /* 机器人状态按钮样式 */
             .robot-btn-pending::after {
                 content: "⟳";
                 margin-left: 4px;
                 font-size: 12px;
                 animation: spin 1s linear infinite;
             }
+            .config-modal {
+                backdrop-filter: blur(10px);
+            }
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-darkBg1 to-darkBg2 min-h-screen text-white p-5 font-sans">
-    <div class="container max-w-7xl mx-auto">
-        <h1 class="text-center mb-8 text-2xl text-primary">都包代班儿手机</h1>
+<body class="bg-gradient-to-br from-darkBg1 to-darkBg2 min-h-screen text-white font-sans">
+    <!-- 顶部导航栏 -->
+    <header class="sticky top-0 z-40 bg-darkBg1/90 backdrop-blur-md border-b border-borderLight">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="text-xl font-bold text-primary">都包代班儿手机</div>
+                <nav class="flex items-center gap-8" id="mainNav">
+                    <a href="/base/control" class="text-primary font-medium border-b-2 border-primary pb-1 nav-link">首页</a>
+                    <a href="/base/skill_square" class="text-white/60 hover:text-white transition-colors nav-link">技能广场</a>
+                    <a href="/base/demand_square" class="text-white/60 hover:text-white transition-colors nav-link">需求广场</a>
+                    <a href="/base/profile" class="text-white/60 hover:text-white transition-colors nav-link">个人中心</a>
+                </nav>
+                <div class="flex items-center gap-3">
+                    <span class="text-lg">👑</span>
+                    <span class="text-sm text-white/80" id="headerMemberType">VIP会员</span>
+                </div>
+            </div>
+        </div>
+    </header>
 
-        <!-- 主布局：大屏三列，小屏一列 -->
-        <div class="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-5 items-start">
-            <!-- 左侧：脚本列表 -->
+    <!-- 主内容区 -->
+    <main class="max-w-7xl mx-auto p-6">
+        <h1 class="text-center mb-8 text-2xl text-primary">设备控制台</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-5 items-start">
+            <!-- 左侧：脚本列表 + 配置 -->
             <div class="bg-cardBg rounded-xl p-5 border border-borderLight">
                 <div class="flex justify-between items-center text-sm text-white/60 mb-4 uppercase tracking-wider">
-                    <span>网友共享技能列表 (可多选)</span>
-                    <!-- 新增：手动刷新按钮 -->
-                    <button class="refresh-btn text-primary hover:text-primaryDark transition-colors text-xs flex items-center gap-1" id="refreshSkillsBtn">
-                        <span>↻</span>
-                        <span>刷新</span>
-                    </button>
+                    <span>技能列表</span>
+                    <div class="flex items-center gap-2">
+                        <a href="/base/skill_square" class="text-primary hover:text-primaryDark transition-colors text-xs flex items-center gap-1 p-1.5 hover:bg-white/5 rounded internal-link" title="前往技能广场">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                            </svg>
+                        </a>
+                        <button class="refresh-btn text-primary hover:text-primaryDark transition-colors text-xs flex items-center gap-1" id="refreshSkillsBtn">
+                            <span>↻</span>
+                            <span>刷新</span>
+                        </button>
+                    </div>
                 </div>
-                <div class="script-list flex flex-col gap-2.5" id="scriptList">
+                
+                <!-- 技能列表 -->
+                <div class="flex flex-col gap-2.5 mb-4" id="scriptList">
+                    <!-- 技能卡片将通过JS动态加载 -->
                 </div>
 
-                <div class="connection-info mt-5 p-3.5 bg-black/30 rounded-lg">
-                    <div class="info-row flex justify-between text-xs mb-2">
-                        <span class="info-label text-white/50">状态</span>
-                        <span class="info-value text-primary font-mono" id="connStatus">未连接</span>
+                <!-- 连接信息 -->
+                <div class="connection-info p-3.5 bg-black/30 rounded-lg">
+                    <div class="flex justify-between text-xs mb-2">
+                        <span class="text-white/50">状态</span>
+                        <span class="text-primary font-mono" id="connStatus">未连接</span>
                     </div>
-                    <div class="info-row flex justify-between text-xs mb-2">
-                        <span class="info-label text-white/50">帧率</span>
-                        <span class="info-value text-primary font-mono" id="fpsDisplay">0 FPS</span>
+                    <div class="flex justify-between text-xs mb-2">
+                        <span class="text-white/50">帧率</span>
+                        <span class="text-primary font-mono" id="fpsDisplay">0 FPS</span>
                     </div>
-                    <div class="info-row flex justify-between text-xs mb-2">
-                        <span class="info-label text-white/50">延迟</span>
-                        <span class="info-value text-primary font-mono" id="latencyDisplay">-- ms</span>
+                    <div class="flex justify-between text-xs mb-2">
+                        <span class="text-white/50">延迟</span>
+                        <span class="text-primary font-mono" id="latencyDisplay">-- ms</span>
                     </div>
-                    <button class="connect-btn w-full py-3 mt-3.5 bg-gradient-to-r from-primary to-primaryDark rounded-md text-white font-medium cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/30 disabled:bg-white/10 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none" id="connectBtn">连接服务器</button>
-
-                    <!-- 新增：启动/停止机器人按钮 -->
-                    <button class="robot-btn w-full py-3 mt-3 bg-gradient-to-r from-success to-green-600 rounded-md text-white font-medium cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-success/30 disabled:bg-white/10 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none" id="robotBtn" disabled>启动机器人</button>
+                    <button class="connect-btn w-full py-2.5 bg-gradient-to-r from-primary to-primaryDark rounded-lg text-white font-medium cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/30 disabled:bg-white/10 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none" id="connectBtn">连接服务器</button>
+                    <button class="robot-btn w-full py-2.5 mt-2 bg-gradient-to-r from-success to-green-600 rounded-lg text-white font-medium cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-success/30 disabled:bg-white/10 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none" id="robotBtn" disabled>启动机器人</button>
                 </div>
             </div>
 
-            <!-- 中间：手机屏幕（修复核心） -->
+            <!-- 中间：手机屏幕 -->
             <div class="phone-container flex flex-col items-center w-full">
-                <!-- 1. 替换无效 w-70 为自定义 w-phone (280px)，确保宽度可见 -->
-                <!-- 2. 调整高度和圆角适配，确保视觉正常 -->
                 <div class="phone-frame w-phone h-[560px] bg-gray-900 rounded-[32px] border-4 border-gray-800 overflow-hidden relative shadow-2xl shadow-black/50">
-                    <!-- 3. 修复绝对定位，用 inset-4 确保填充手机边框内区域，增加 bg-black 确保背景不透明 -->
                     <div class="phone-screen absolute inset-4 rounded-[28px] bg-black overflow-hidden">
                         <!-- 连接状态指示 -->
                         <div class="connection-status absolute top-2.5 right-2.5 flex items-center gap-2 z-10">
@@ -155,10 +178,10 @@
                         <!-- 控制结果提示 -->
                         <div class="control-result absolute top-12 left-1/2 -translate-x-1/2 bg-black/80 px-4 py-2 rounded-full text-xs opacity-0 transition-opacity duration-300" id="controlResult"></div>
 
-                        <!-- 4. 截图显示：确保宽高全屏填充，移除可能的隐藏冲突，默认隐藏 -->
+                        <!-- 截图显示 -->
                         <img class="screenshot-img absolute inset-0 w-full h-full object-cover hidden" id="screenshotImg" alt="手机屏幕">
 
-                        <!-- 5. 未连接状态：确保全屏居中显示，默认可见 -->
+                        <!-- 未连接状态 -->
                         <div class="no-connection absolute inset-0 flex flex-col items-center justify-center text-white/40" id="noConnection">
                             <div class="no-connection-icon w-15 h-15 border-2 border-white/20 rounded-full mb-3.5 flex items-center justify-center text-2xl">📱</div>
                             <div id="connectMsg">未连接设备</div>
@@ -179,7 +202,7 @@
             <!-- 右侧：日志 -->
             <div class="bg-cardBg rounded-xl p-5 border border-borderLight">
                 <div class="text-sm text-white/60 mb-4 uppercase tracking-wider">执行日志</div>
-                <div class="log-container h-[300px] overflow-y-auto font-mono text-xs leading-relaxed" id="logContainer">
+                <div class="log-container h-[400px] overflow-y-auto font-mono text-xs leading-relaxed" id="logContainer">
                     <div class="log-entry py-1 border-b border-white/5">
                         <span class="log-time text-white/40 mr-2">--:--:--</span>
                         <span class="log-info text-info">等待连接...</span>
@@ -187,37 +210,96 @@
                 </div>
             </div>
         </div>
+    </main>
+
+    <!-- 配置弹窗 -->
+    <div id="configModal" class="config-modal fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+        <div class="bg-darkBg1 rounded-2xl border border-borderLight w-[500px] max-h-[80vh] flex flex-col shadow-2xl">
+            <!-- 弹窗头部 -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-borderLight">
+                <h3 class="text-lg font-semibold">技能配置 - <span id="configSkillName" class="text-primary"></span></h3>
+                <button onclick="closeConfig()" class="text-white/40 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 弹窗内容 -->
+            <div class="flex-1 p-6 overflow-y-auto">
+                <div id="configContainer" class="space-y-3">
+                    <!-- 动态渲染的配置项 -->
+                </div>
+                <div id="emptyConfig" class="hidden text-center py-8 text-white/50">
+                    <div class="text-3xl mb-2">📋</div>
+                    <div>暂无配置项</div>
+                </div>
+            </div>
+
+            <!-- 弹窗底部 -->
+            <div class="flex items-center justify-end px-6 py-4 border-t border-borderLight">
+                <span id="saveStatus" class="text-xs text-success hidden mr-3">✓ 已保存</span>
+                <button onclick="closeConfig()" class="px-5 py-2 bg-cardBg border border-borderLight rounded-lg text-white hover:bg-cardBgHover transition-all">
+                    关闭
+                </button>
+            </div>
+        </div>
     </div>
 
     <script>
         const req = new http()
         let localHost = window.location.hostname
+        let currentConfigSkill = null;
+        
+        // 获取 user_key (从 URL 参数 sn)
+        function getUserKey() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('sn') || localStorage.getItem('user_key') || '';
+        }
+        
+        // 获取带 sn 参数的 URL
+        function getUrlWithSn(path) {
+            const sn = getUserKey();
+            if (sn) {
+                return `${path}?sn=${sn}`;
+            }
+            return path;
+        }
+        
+        // 更新所有导航链接
+        function updateNavLinks() {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                const originalHref = link.getAttribute('href');
+                link.href = getUrlWithSn(originalHref);
+            });
+        }
+
+        // 配置数据缓存
+        let skillConfigs = {};
 
         function setAllScriptsDisabled() {
             document.querySelectorAll('.script-card').forEach(card => {
-                card.style.pointerEvents = 'none'; // 禁用点击
+                card.style.pointerEvents = 'none';
             });
         }
 
         function setAllScriptsEnable() {
             document.querySelectorAll('.script-card').forEach(card => {
-                card.style.pointerEvents = 'auto'; // 禁用点击
+                card.style.pointerEvents = 'auto';
             });
         }
-
 
         function setAllScriptsPending(isPending) {
             document.querySelectorAll('.script-card').forEach(card => {
                 if (isPending) {
                     card.classList.add('script-pending');
-                    card.style.pointerEvents = 'none'; // 禁用点击
+                    card.style.pointerEvents = 'none';
                 } else {
                     card.classList.remove('script-pending');
-                    card.style.pointerEvents = 'auto'; // 启用点击
+                    card.style.pointerEvents = 'auto';
                 }
             });
         }
-
 
         // ==================== WebSocket 客户端实现 ====================
         class WebSocketClient {
@@ -235,25 +317,22 @@
                 this.onError = null;
                 this.onConnect = null;
                 this.onDisconnect = null;
-                this.onScriptStatusUpdate = null; // 新增：脚本状态更新回调
-                this.onRobotStatusUpdate = null; // 新增：机器人状态更新回调
-                this.isManualDisconnect = false; // 标记是否为主动手动断开
+                this.onScriptStatusUpdate = null;
+                this.onRobotStatusUpdate = null;
+                this.isManualDisconnect = false;
                 this.wsName = 'front';
-                this.robotState = 'stopped'; // 新增：机器人状态 stopped/running/starting/stopping
+                this.robotState = 'stopped';
             }
 
             connect() {
                 if (this.ws?.readyState === WebSocket.OPEN) return;
                 updateConnectMsg('已连接, 等待数据传输')
 
-                // 主动断开后重新连接，重置手动断开标记
                 this.isManualDisconnect = false;
                 this.connectionState = 'connecting';
                 this.updateStatus();
-
-                // 显示所有脚本卡片的等待更新状态
-                // setAllScriptsPending(true);
                 setAllScriptsEnable()
+                
                 try {
                     this.ws = new WebSocket(this.url);
 
@@ -262,13 +341,7 @@
                         this.connectionState = 'connected';
                         this.reconnectAttempts = 0;
                         this.updateStatus();
-
-                        // 连接成功后发送全量脚本状态数据
-                        // this.sendFullScriptStatus();
-                        // 连接成功后不自动启动机器人，由用户手动触发
-                        // this.sendStartRobotCmd()
                         this.sendQueryRobotStatusCmd()
-
                         this.onConnect?.();
                     };
 
@@ -287,16 +360,13 @@
                         console.log('[WebSocket] 连接关闭');
                         updateConnectMsg('未连接设备')
                         this.connectionState = 'disconnected';
-                        this.robotState = 'stopped'; // 连接断开重置机器人状态
+                        this.robotState = 'stopped';
                         this.updateStatus();
                         this.onDisconnect?.();
-                        this.onRobotStatusUpdate?.(this.robotState); // 通知机器人状态更新
+                        this.onRobotStatusUpdate?.(this.robotState);
                         this.ws = null;
-
-                        // 清除等待状态
                         setAllScriptsPending(false);
 
-                        // 仅当非手动断开时，才执行自动重连
                         if (!this.isManualDisconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
                             this.reconnectAttempts++;
                             log(`尝试第${this.reconnectAttempts}次重连...`, 'warn');
@@ -309,34 +379,26 @@
                         this.connectionState = 'error';
                         this.updateStatus();
                         this.onError?.(error);
-
-                        // 清除等待状态
                         setAllScriptsPending(false);
                     };
                 } catch (err) {
                     console.error('[WebSocket] 创建连接失败:', err);
                     this.connectionState = 'error';
                     this.updateStatus();
-
-                    // 清除等待状态
                     setAllScriptsPending(false);
                 }
             }
 
-            // 新增：更新机器人状态
             updateRobotState(newState) {
                 this.robotState = newState;
                 this.onRobotStatusUpdate?.(newState);
-                // 更新按钮状态
                 this.updateRobotBtnStatus();
             }
 
-            // 新增：更新机器人按钮显示状态
             updateRobotBtnStatus() {
                 const robotBtn = document.getElementById('robotBtn');
                 if (!robotBtn) return;
 
-                // 重置按钮样式和状态
                 robotBtn.classList.remove('from-success', 'to-green-600', 'from-danger', 'to-red-600', 'from-warning', 'to-amber-600', 'robot-btn-pending');
                 robotBtn.disabled = this.connectionState !== 'connected';
 
@@ -363,20 +425,13 @@
                 }
             }
 
-
             sendStartRobotCmd() {
                 if (this.ws?.readyState !== WebSocket.OPEN) {
                     log('连接未就绪，无法发送启动机器人指令', 'error');
                     return false;
                 }
-
-                // 设置机器人状态为启动中
                 this.updateRobotState('starting');
-
-                const msg = {
-                    type: 'start_robot',
-                    robot_id: 1
-                };
+                const msg = { type: 'start_robot', robot_id: 1 };
                 this.ws.send(JSON.stringify(msg));
                 log('发送启动机器人指令', 'info');
                 return true;
@@ -384,16 +439,10 @@
 
             sendQueryRobotStatusCmd() {
                 if (this.ws?.readyState !== WebSocket.OPEN) {
-                    log('连接未就绪，无法发送启动机器人指令', 'error');
                     return false;
                 }
-
-                const msg = {
-                    type: 'query_robot_status',
-                    robot_id: 1
-                };
+                const msg = { type: 'query_robot_status', robot_id: 1 };
                 this.ws.send(JSON.stringify(msg));
-                log('发送查询机器人状态指令', 'info');
                 return true;
             }
 
@@ -402,65 +451,14 @@
                     log('连接未就绪，无法发送停止机器人指令', 'error');
                     return false;
                 }
-
-                // 设置机器人状态为停止中
                 this.updateRobotState('stopping');
-
-                const msg = {
-                    type: 'stop_robot',
-                    robot_id: 1
-                };
+                const msg = { type: 'stop_robot', robot_id: 1 };
                 this.ws.send(JSON.stringify(msg));
                 log('发送停止机器人指令', 'info');
                 return true;
             }
 
-            // 连接时发送全量脚本状态（包含所有脚本的选中/未选中列表）
-            sendFullScriptStatus() {
-                // 获取所有脚本卡片
-                const allScriptCards = document.querySelectorAll('.script-card');
-                const scriptStatus = {};
-
-                // 构建所有脚本的状态映射
-                Array.from(allScriptCards).forEach(card => {
-                    const scriptName = card.dataset.script;
-                    scriptStatus[scriptName] = card.classList.contains('active');
-                });
-
-                // 拆分选中/未选中列表
-                const selectedScripts = Object.entries(scriptStatus)
-                    .filter(([_, isActive]) => isActive)
-                    .map(([name, _]) => name);
-                const unselectedScripts = Object.entries(scriptStatus)
-                    .filter(([_, isActive]) => !isActive)
-                    .map(([name, _]) => name);
-
-                const msg = {
-                    name: this.wsName,
-                    type: 'group_switch',          // 统一消息类型
-                    data_type: 'full',              // 标记为全量数据
-                    // group_switch: scriptStatus,    // 所有脚本状态（全量）
-                    selected: selectedScripts,      // 选中列表
-                    unselected: unselectedScripts,  // 未选中列表
-                    timestamp: Date.now(),
-                    // key: "target_fps",
-                    // value: 15
-                };
-
-                if (this.ws?.readyState !== WebSocket.OPEN) {
-                    log('连接未就绪，无法发送全量脚本状态数据', 'error');
-                    setAllScriptsPending(false);
-                    return false;
-                }
-
-                this.ws.send(JSON.stringify(msg));
-                log(`发送全量脚本状态 - 选中: [${selectedScripts.join(', ')}] | 未选中: [${unselectedScripts.join(', ')}]`, 'info');
-                return true;
-            }
-
-            // 点击脚本时仅发送当前点击脚本的状态（仅单条数据）
             sendSingleScriptStatus(scriptName, isActive) {
-                // 先标记当前脚本为等待状态
                 const card = document.querySelector(`[data-script="${scriptName}"]`);
                 if (card) card.classList.add('script-pending');
 
@@ -470,132 +468,74 @@
                     return false;
                 }
 
-                // 仅构建当前点击脚本的状态数据（不再包含所有脚本）
                 const msg = {
                     name: this.wsName,
-                    type: 'group_switch',          // 统一消息类型
-                    data_type: 'single',            // 标记为单条数据
-                    // group_switch: {                // 仅包含当前点击的脚本
-                    //     [scriptName]: isActive
-                    // },
+                    type: 'group_switch',
+                    data_type: 'single',
                     selected: [],
                     unselected: [],
-                    // updated_script: scriptName,     // 本次更新的脚本名
                     timestamp: Date.now(),
-                    // key: "target_fps",
-                    // value: 15
                 };
                 isActive ? msg.selected.push(scriptName) : msg.unselected.push(scriptName)
                 this.ws.send(JSON.stringify(msg));
                 log(`更新脚本状态: ${scriptName} - ${isActive ? '启用' : '禁用'}`, 'info');
-
                 return true;
             }
 
-            // 新增：设置所有脚本卡片的等待更新状态
-            setAllScriptsPending(isPending) {
-                document.querySelectorAll('.script-card').forEach(card => {
-                    if (isPending) {
-                        card.classList.add('script-pending');
-                        card.style.pointerEvents = 'none'; // 禁用点击
-                    } else {
-                        card.classList.remove('script-pending');
-                        card.style.pointerEvents = 'auto'; // 启用点击
-                    }
-                });
-            }
-
-
-            // 单个脚本取消pending状态
             clearScriptPending(scriptName) {
                 const card = document.querySelector(`[data-script="${scriptName}"]`);
-                console.log('card', card)
                 if (card) {
                     card.classList.remove('script-pending');
-                    card.style.pointerEvents = 'auto'; // 恢复点击
+                    card.style.pointerEvents = 'auto';
                 }
             }
 
-            // 批量取消指定脚本的pending状态（适配后端返回列表）
             clearScriptsPending(scriptNames) {
                 if (!Array.isArray(scriptNames)) return;
                 scriptNames.forEach(name => this.clearScriptPending(name));
             }
 
-
             disconnect() {
                 if (this.ws) {
-                    // 如果机器人正在运行，先发送停止指令
-                    // if (this.robotState === 'running' || this.robotState === 'starting') {
-                    //     this.sendStopRobotCmd();
-                    // }
-                    // 标记为手动断开，阻止后续自动重连
                     this.isManualDisconnect = true;
                     this.ws.close();
                     this.ws = null;
                 }
-                // 清除等待状态
                 setAllScriptsPending(false);
-                // 重置机器人状态
-                // this.updateRobotState('stopped');
             }
 
             handleScreenshot(blob) {
-                // 计算FPS
                 const now = Date.now();
                 this.frameTimes.push(now);
                 this.frameTimes = this.frameTimes.filter(t => now - t < 1000);
                 this.frameCount++;
 
-                // 更新FPS显示
                 const fps = this.frameTimes.length;
                 document.getElementById('fpsBadge').textContent = `${fps} FPS`;
                 document.getElementById('fpsDisplay').textContent = `${fps} FPS`;
 
-                // 回调显示截图
                 this.onScreenshot?.(blob);
-
-                // 发送ack
-                // this.sendScreenshotAck();
-            }
-
-            sendScreenshotAck() {
-                if (this.ws?.readyState === WebSocket.OPEN) {
-                    const ack = {
-                        type: 'screenshot_ack',
-                        timestamp: Date.now()
-                    };
-                    this.ws.send(JSON.stringify(ack));
-                }
             }
 
             handleTextMessage(data) {
                 try {
                     const msg = JSON.parse(data);
-
                     switch (msg.type) {
-                        // case 'control_result':
-                        //     log(`控制结果: ${msg.action} - ${msg.status}`, msg.status === 'success' ? 'success' : 'error');
-                        //     this.onControlResult?.(msg);
-                        //     break;
-                        case 'group_switch_result': // 处理脚本状态更新响应
+                        case 'group_switch_result':
                             log(`脚本状态更新完成: ${JSON.stringify(msg.group_status_data)}`, 'success');
                             const updatedScriptNames = Object.keys(msg.group_status_data || {});
                             this.clearScriptsPending(updatedScriptNames);
-                            this.onScriptStatusUpdate?.(msg.group_status_data); // 通知页面更新UI
+                            this.onScriptStatusUpdate?.(msg.group_status_data);
                             break;
-                        // 新增：处理机器人启动/停止结果
                         case 'robot_status':
                             log(`机器人状态更新: ${msg.state}`, msg.state === 'running' ? 'success' : 'info');
-                            if (msg.success === true){
-                                this.updateRobotState(msg.state); // 更新机器人状态
+                            if (msg.success === true) {
+                                this.updateRobotState(msg.state);
                             }
-
                             break;
                         case 'error':
                             log(`错误: ${msg.message}`, 'error');
-                            setAllScriptsPending(false); // 出错时也清除等待状态
-                            // 出错时重置机器人状态
+                            setAllScriptsPending(false);
                             if (msg.type === 'robot_error') {
                                 this.updateRobotState('stopped');
                             }
@@ -603,7 +543,7 @@
                     }
                 } catch (e) {
                     console.error('[WebSocket] 解析消息失败:', e);
-                    setAllScriptsPending(false); // 解析失败也清除等待状态
+                    setAllScriptsPending(false);
                 }
             }
 
@@ -612,13 +552,7 @@
                     log('连接未就绪，无法发送控制指令', 'error');
                     return false;
                 }
-
-                const msg = {
-                    type: 'control',
-                    action,
-                    params
-                };
-
+                const msg = { type: 'control', action, params };
                 this.ws.send(JSON.stringify(msg));
                 log(`发送控制指令: ${action}`, 'info');
                 return true;
@@ -631,7 +565,6 @@
                 const btn = document.getElementById('connectBtn');
                 const robotBtn = document.getElementById('robotBtn');
 
-                // 重置状态点样式
                 dotEl.className = 'status-dot w-2 h-2 rounded-full';
 
                 switch (this.connectionState) {
@@ -643,7 +576,6 @@
                         btn.textContent = '断开连接';
                         btn.disabled = false;
                         enableControls(true);
-                        // 连接成功后启用机器人按钮
                         robotBtn.disabled = false;
                         break;
                     case 'connecting':
@@ -676,8 +608,6 @@
                         enableControls(false);
                         robotBtn.disabled = true;
                 }
-
-                // 更新机器人按钮状态
                 this.updateRobotBtnStatus();
             }
         }
@@ -705,13 +635,11 @@
             });
         }
 
-        // 更新脚本卡片UI状态
         function updateScriptCardStatus(scriptsStatus) {
             Object.entries(scriptsStatus).forEach(([scriptName, isActive]) => {
                 const card = document.querySelector(`[data-script="${scriptName}"]`);
                 if (!card) return;
 
-                // 更新选中状态
                 if (isActive) {
                     card.classList.add('active', 'bg-primary/10', 'border-borderPrimary', 'script-active');
                     card.classList.remove('script-pending');
@@ -722,28 +650,222 @@
             });
         }
 
+        // ==================== 配置弹窗功能 ====================
+        function openConfig(skillName) {
+            currentConfigSkill = skillName;
+            document.getElementById('configSkillName').textContent = skillName;
+            
+            // 加载配置
+            loadSkillConfig(skillName);
+            
+            const modal = document.getElementById('configModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeConfig() {
+            const modal = document.getElementById('configModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            currentConfigSkill = null;
+        }
+
+        function loadSkillConfig(skillName) {
+            // 从后端获取配置
+            const retData = req.getSync(`/base/skill_config?skill_name=${encodeURIComponent(skillName)}`);
+            if (retData && retData.code === 2000) {
+                const config = retData.data.config || {};
+                skillConfigs[skillName] = config;
+                renderConfigForm(config);
+            } else {
+                renderConfigForm({});
+            }
+        }
+
+        function renderConfigForm(config) {
+            const container = document.getElementById('configContainer');
+            const emptyDiv = document.getElementById('emptyConfig');
+            
+            // 清空容器
+            container.innerHTML = '';
+            
+            const keys = Object.keys(config);
+            if (keys.length === 0) {
+                container.classList.add('hidden');
+                emptyDiv.classList.remove('hidden');
+                return;
+            }
+            
+            container.classList.remove('hidden');
+            emptyDiv.classList.add('hidden');
+            
+            // 渲染每个配置项为 key-value 形式
+            keys.forEach((key, index) => {
+                const value = config[key];
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-3 p-3 bg-cardBg rounded-lg';
+                row.innerHTML = `
+                    <input type="text" 
+                           class="config-key flex-1 px-3 py-2 bg-black/20 border border-borderLight rounded text-white text-sm focus:outline-none focus:border-primary transition-all" 
+                           value="${escapeHtml(key)}" 
+                           data-original-key="${escapeHtml(key)}"
+                           placeholder="键名">
+                    <span class="text-white/40">:</span>
+                    <input type="text" 
+                           class="config-value flex-1 px-3 py-2 bg-black/20 border border-borderLight rounded text-white text-sm focus:outline-none focus:border-primary transition-all" 
+                           value="${escapeHtml(String(value))}" 
+                           placeholder="值">
+                    <button onclick="removeConfigRow(this)" class="text-white/40 hover:text-danger transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                `;
+                container.appendChild(row);
+                
+                // 绑定 onchange 事件
+                const keyInput = row.querySelector('.config-key');
+                const valueInput = row.querySelector('.config-value');
+                
+                keyInput.addEventListener('change', () => autoSaveConfig());
+                valueInput.addEventListener('change', () => autoSaveConfig());
+            });
+            
+            // 添加新增按钮
+            const addRow = document.createElement('div');
+            addRow.className = 'flex justify-center pt-2';
+            addRow.innerHTML = `
+                <button onclick="addConfigRow()" class="flex items-center gap-2 px-4 py-2 text-sm text-primary hover:text-primaryDark transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    添加配置项
+                </button>
+            `;
+            container.appendChild(addRow);
+        }
+
+        function addConfigRow() {
+            const container = document.getElementById('configContainer');
+            // 移除新增按钮（在最后）
+            const addRow = container.lastElementChild;
+            addRow.remove();
+            
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-3 p-3 bg-cardBg rounded-lg';
+            row.innerHTML = `
+                <input type="text" 
+                       class="config-key flex-1 px-3 py-2 bg-black/20 border border-borderLight rounded text-white text-sm focus:outline-none focus:border-primary transition-all" 
+                       value="" 
+                       data-original-key=""
+                       placeholder="键名">
+                <span class="text-white/40">:</span>
+                <input type="text" 
+                       class="config-value flex-1 px-3 py-2 bg-black/20 border border-borderLight rounded text-white text-sm focus:outline-none focus:border-primary transition-all" 
+                       value="" 
+                       placeholder="值">
+                <button onclick="removeConfigRow(this)" class="text-white/40 hover:text-danger transition-colors p-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            `;
+            container.appendChild(row);
+            
+            // 绑定事件
+            const keyInput = row.querySelector('.config-key');
+            const valueInput = row.querySelector('.config-value');
+            keyInput.addEventListener('change', () => autoSaveConfig());
+            valueInput.addEventListener('change', () => autoSaveConfig());
+            
+            // 重新添加新增按钮
+            const newAddRow = document.createElement('div');
+            newAddRow.className = 'flex justify-center pt-2';
+            newAddRow.innerHTML = `
+                <button onclick="addConfigRow()" class="flex items-center gap-2 px-4 py-2 text-sm text-primary hover:text-primaryDark transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    添加配置项
+                </button>
+            `;
+            container.appendChild(newAddRow);
+            
+            // 聚焦到新增的 key 输入框
+            keyInput.focus();
+        }
+
+        function removeConfigRow(btn) {
+            btn.closest('.flex').remove();
+            autoSaveConfig();
+        }
+
+        function autoSaveConfig() {
+            if (!currentConfigSkill) return;
+            
+            const container = document.getElementById('configContainer');
+            const rows = container.querySelectorAll('.flex.items-center.gap-3');
+            const config = {};
+            
+            rows.forEach(row => {
+                const keyInput = row.querySelector('.config-key');
+                const valueInput = row.querySelector('.config-value');
+                if (keyInput && valueInput) {
+                    const key = keyInput.value.trim();
+                    const value = valueInput.value;
+                    if (key) {
+                        config[key] = value;
+                    }
+                }
+            });
+            
+            const retData = req.postSync('/base/skill_config/save', {
+                skill_name: currentConfigSkill,
+                config: config
+            });
+            
+            if (retData && retData.code === 2000) {
+                skillConfigs[currentConfigSkill] = config;
+                const saveStatus = document.getElementById('saveStatus');
+                saveStatus.classList.remove('hidden');
+                setTimeout(() => saveStatus.classList.add('hidden'), 2000);
+                log(`配置已保存: ${currentConfigSkill}`, 'success');
+            } else {
+                log('保存配置失败', 'error');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 点击弹窗外部关闭
+        document.getElementById('configModal').addEventListener('click', (e) => {
+            if (e.target.id === 'configModal') {
+                closeConfig();
+            }
+        });
+
         // ==================== 初始化 ====================
         const wsClient = new WebSocketClient(`ws://${localHost}:8765`);
 
-        // 截图处理（确保隐藏/显示逻辑正常）
         let currentBlobUrl = null;
         wsClient.onScreenshot = (blob) => {
             const img = document.getElementById('screenshotImg');
             const noConn = document.getElementById('noConnection');
 
-            // 释放之前的URL
             if (currentBlobUrl) {
                 URL.revokeObjectURL(currentBlobUrl);
             }
 
-            // 创建新URL并切换显示状态
             currentBlobUrl = URL.createObjectURL(blob);
             img.src = currentBlobUrl;
-            img.classList.remove('hidden'); // 显示截图
-            noConn.classList.add('hidden'); // 隐藏未连接提示
+            img.classList.remove('hidden');
+            noConn.classList.add('hidden');
         };
 
-        // 控制结果处理
         wsClient.onControlResult = (result) => {
             const el = document.getElementById('controlResult');
             el.textContent = result.status === 'success'
@@ -756,17 +878,14 @@
             }, 3000);
         };
 
-        // 处理脚本状态更新
         wsClient.onScriptStatusUpdate = (scriptsStatus) => {
             updateScriptCardStatus(scriptsStatus);
         };
 
-        // 新增：处理机器人状态更新
         wsClient.onRobotStatusUpdate = (state) => {
             const robotBtn = document.getElementById('robotBtn');
             if (!robotBtn) return;
 
-            // 根据机器人状态更新按钮显示
             switch (state) {
                 case 'running':
                     log('机器人已启动', 'success');
@@ -783,7 +902,7 @@
             }
         };
 
-        // 连接/断开按钮
+        // 事件绑定
         document.getElementById('connectBtn').addEventListener('click', () => {
             if (wsClient.connectionState === 'connected') {
                 wsClient.disconnect();
@@ -792,21 +911,15 @@
             }
         });
 
-        // 新增：机器人启动/停止按钮事件
         document.getElementById('robotBtn').addEventListener('click', () => {
             const currentState = wsClient.robotState;
-
             if (currentState === 'stopped') {
-                // 停止状态 -> 启动
                 wsClient.sendStartRobotCmd();
             } else if (currentState === 'running') {
-                // 运行状态 -> 停止
                 wsClient.sendStopRobotCmd();
             }
-            // 忽略 starting/stopping 状态的点击
         });
 
-        // 控制按钮事件
         document.getElementById('btnBack').addEventListener('click', () => {
             wsClient.sendControl('back');
         });
@@ -824,10 +937,9 @@
         });
 
         document.getElementById('refreshSkillsBtn').addEventListener('click', () => {
-            loadSkills(forceFetch=true)
+            loadSkills()
         });
 
-        // 页面关闭时清理
         window.addEventListener('beforeunload', () => {
             if (currentBlobUrl) {
                 URL.revokeObjectURL(currentBlobUrl);
@@ -835,38 +947,9 @@
             wsClient.disconnect();
         });
 
-
-        function init(){
-            const remoteUrl = 'https://coco.j1.sale/pages/daiban/packages.html'
-            const sn = getUrlParam('sn')
-            if (!sn) {
-                window.location.href = remoteUrl
-            } else {
-
-                const retData = req.getSync(`https://coco.j1.sale/daiban/client/user_info?sn=${sn}`)
-                // const retData = req.getSync(`http://localhost:8000/daiban/client/user_info?sn=${sn}`)
-                console.log('retData', retData)
-                if (retData && retData.code == 2000 & retData.data.is_valid){
-
-                } else {
-                    window.location.href = remoteUrl
-                }
-            }
-
-            const isSave = getUrlParam('save')
-            console.log('isSave', isSave)
-            if (isSave === '1'){
-                console.log('aaaa')
-                req.post(`/base/update_sn`, {sn: sn})
-            }
+        function updateConnectMsg(msg){
+            document.getElementById('connectMsg').innerHTML = msg
         }
-
-        // function getUrlParam(name) {
-        //     const reg = new RegExp(`(^|&)${name}=([^&]*)(&|$)`);
-        //     const r = window.location.search.substr(1).match(reg);
-        //     if (r != null) return decodeURIComponent(r[2]);
-        //     return null;
-        // }
 
         function fetchSkills(forceFetch=false) {
             let data = {}
@@ -874,43 +957,45 @@
                 data.force_fetch = forceFetch
             }
             let retData = req.getSync('/base/skills', data)
-            console.log('retData', retData)
             if (retData.code === 2000){
                 return retData.data
             }
+            return [];
         }
 
         function loadSkills(forceFetch=false){
-
             const scriptListEl = document.getElementById('scriptList')
             let skillList = fetchSkills(forceFetch=forceFetch)
-            console.log('skillList', skillList)
+            
             let html = ''
             for (let i in skillList){
                 let skill_data = skillList[i]
-                console.log('skill_data', skill_data)
+                const isActive = skill_data.是否激活;
                 html += `
-                        <div class="script-card p-3 bg-cardBg rounded-lg cursor-pointer transition-all border border-transparent relative hover:bg-cardBgHover hover:border-borderPrimaryLight
-                            ${skill_data.是否激活 ? 'active bg-primary/10 border-borderPrimary script-active': ''}
-                            " data-script="${skill_data.group_name}">
-                            <div class="script-name text-sm font-medium mb-1">${skill_data.group_name}</div>
-                            <div class="script-desc text-xs text-white/50">${skill_data.描述 ||'' }</div>
+                    <div class="group relative ${isActive ? 'bg-primary/10 border-borderPrimary' : 'bg-cardBg border-transparent'} rounded-lg p-3 border hover:border-borderPrimaryLight cursor-pointer transition-all script-card ${isActive ? 'active script-active' : ''}" data-script="${skill_data.group_name}">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="script-name text-sm font-medium">${skill_data.group_name}</span>
+                            <button onclick="event.stopPropagation(); openConfig('${skill_data.group_name}')" class="p-1.5 hover:bg-white/10 rounded" title="配置">
+                                <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                            </button>
                         </div>
+                        <div class="text-xs text-white/50">${skill_data.描述 || '暂无描述'}</div>
+                        ${isActive ? '<div class="absolute right-3 top-1/2 -translate-y-1/2 text-success text-sm">✓</div>' : ''}
+                    </div>
                 `
-                scriptListEl.innerHTML = html
             }
+            scriptListEl.innerHTML = html
 
-
-            // 脚本卡片点击 - 仅推送当前点击脚本的数据
+            // 脚本卡片点击事件
             document.querySelectorAll('.script-card').forEach(card => {
                 card.addEventListener('click', () => {
                     const scriptName = card.dataset.script;
                     const scriptDisplayName = card.querySelector('.script-name').textContent;
-                    console.log('scriptName', scriptName)
-                    console.log('wsClient.connectionState', wsClient.connectionState)
-                    // 如果未连接，仅本地切换状态
+                    
                     if (wsClient.connectionState !== 'connected') {
-                        // 切换选中状态
                         card.classList.toggle('active');
                         card.classList.toggle('bg-primary/10');
                         card.classList.toggle('border-borderPrimary');
@@ -924,15 +1009,12 @@
                         return;
                     }
 
-                    // 已连接时，先标记为等待状态，再发送单条脚本数据
                     const willBeActive = !card.classList.contains('active');
                     card.classList.add('script-pending');
-                    card.style.pointerEvents = 'none'; // 禁用重复点击
+                    card.style.pointerEvents = 'none';
 
-                    // 仅发送当前点击脚本的状态数据
                     wsClient.sendSingleScriptStatus(scriptName, willBeActive);
 
-                    // 本地先临时切换状态（服务器确认后会最终更新）
                     if (willBeActive) {
                         card.classList.add('active', 'bg-primary/10', 'border-borderPrimary', 'script-active');
                         log(`请求启用脚本: ${scriptDisplayName}（等待服务器确认）`, 'info');
@@ -942,19 +1024,50 @@
                     }
                 });
             });
-
         }
 
-        function updateConnectMsg(msg){
-            document.getElementById('connectMsg').innerHTML = msg
+        // 加载用户信息
+        async function loadUserInfo() {
+            const userKey = getUserKey();
+            if (!userKey) {
+                document.getElementById('headerMemberType').textContent = '未登录';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`http://192.168.0.117:8000/daiban/client/user_info?sn=${userKey}`);
+                const result = await response.json();
+                
+                if (result.code === 2000) {
+                    const user = result.data;
+                    const statusText = user.is_valid ? 'VIP会员' : (user.package ? '已过期' : '未开通');
+                    document.getElementById('headerMemberType').textContent = statusText;
+                } else {
+                    document.getElementById('headerMemberType').textContent = '未登录';
+                }
+            } catch (error) {
+                console.error('获取用户信息失败:', error);
+                document.getElementById('headerMemberType').textContent = '未登录';
+            }
         }
-
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadSkills(forceFetch=true)
+            updateNavLinks();
+            // 更新所有内部链接
+            document.querySelectorAll('.internal-link').forEach(link => {
+                const originalHref = link.getAttribute('href');
+                link.href = getUrlWithSn(originalHref);
+            });
+            // 更新所有非导航链接
+            document.querySelectorAll('a[href^="/base/"]:not(.nav-link):not(.internal-link)').forEach(link => {
+                const originalHref = link.getAttribute('href');
+                if (!originalHref.includes('?')) {
+                    link.href = getUrlWithSn(originalHref);
+                }
+            });
+            loadUserInfo();
+            loadSkills()
             setAllScriptsDisabled();
-            // init()
-
         })
 
         log('页面加载完成，点击"连接服务器"开始使用', 'info');

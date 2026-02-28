@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技能广场 - 都包代班儿手机</title>
+    <script src="https://file.j1.sale/api/file/static/js/tailwindcss.js"></script>
+    <script src="https://file.j1.sale/api/file/static/js/utils.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg1: '#1a1a2e',
+                        darkBg2: '#16213e',
+                        primary: '#00d4ff',
+                        primaryDark: '#0099cc',
+                        success: '#4ade80',
+                        warning: '#fbbf24',
+                        danger: '#ef4444',
+                        info: '#60a5fa',
+                        cardBg: 'rgba(255, 255, 255, 0.05)',
+                        cardBgHover: 'rgba(255, 255, 255, 0.1)',
+                        borderLight: 'rgba(255, 255, 255, 0.1)',
+                        borderPrimary: 'rgba(0, 212, 255, 0.5)',
+                        borderPrimaryLight: 'rgba(0, 212, 255, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .skill-card:hover {
+            transform: translateY(-4px);
+        }
+        .tab-active {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+        .category-tab.active,
+        .download-filter.active {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+        .loading-skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        /* 技能图标自适应文字 */
+        .skill-icon {
+            font-size: 2rem;
+            line-height: 1;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0 4px;
+        }
+        .skill-icon-text-long {
+            font-size: 1.2rem;
+        }
+        .skill-icon-text-very-long {
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-darkBg1 to-darkBg2 min-h-screen text-white font-sans">
+    <!-- 顶部导航 -->
+    <header class="sticky top-0 z-50 bg-darkBg1/90 backdrop-blur-md border-b border-borderLight">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="text-xl font-bold text-primary">都包代班儿手机</div>
+                <nav class="flex items-center gap-8" id="mainNav">
+                    <a href="/base/control" class="text-white/60 hover:text-white transition-colors nav-link">首页</a>
+                    <a href="/base/skill_square" class="text-primary font-medium border-b-2 border-primary pb-1 nav-link">技能广场</a>
+                    <a href="/base/demand_square" class="text-white/60 hover:text-white transition-colors nav-link">需求广场</a>
+                    <a href="/base/profile" class="text-white/60 hover:text-white transition-colors nav-link">个人中心</a>
+                </nav>
+                <div class="flex items-center gap-3">
+                    <span class="text-lg">👑</span>
+                    <span class="text-sm text-white/80" id="headerMemberType">VIP会员</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="max-w-7xl mx-auto p-6">
+        <!-- 页面标题 -->
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold mb-2">技能广场</h1>
+            <p class="text-white/50">发现并下载你需要的自动化技能</p>
+        </div>
+
+        <!-- 筛选栏 -->
+        <div class="bg-cardBg rounded-xl p-4 border border-borderLight mb-6">
+            <div class="flex flex-wrap items-center gap-4">
+                <!-- 分类标签 -->
+                <div class="flex items-center gap-2 flex-wrap" id="categoryFilters">
+                    <button class="category-tab active px-4 py-2 rounded-lg border text-sm font-medium transition-all" data-category="all">全部</button>
+                    <button class="category-tab px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all" data-category="wechat">微信</button>
+                    <button class="category-tab px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all" data-category="douyin">抖音</button>
+                    <button class="category-tab px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all" data-category="xiaohongshu">小红书</button>
+                    <button class="category-tab px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all" data-category="weibo">微博</button>
+                    <button class="category-tab px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all" data-category="qq">QQ</button>
+                    <button class="category-tab px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all" data-category="taobao">淘宝</button>
+                </div>
+
+                <div class="w-px h-6 bg-borderLight mx-2"></div>
+
+                <div class="flex items-center gap-2" id="downloadFilters">
+                    <button class="download-filter active px-4 py-2 rounded-lg border text-sm font-medium transition-all" data-download="all">全部</button>
+                    <button class="download-filter px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all flex items-center gap-1" data-download="downloaded">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        已下载
+                    </button>
+                    <button class="download-filter px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all" data-download="undownloaded">
+                        未下载
+                    </button>
+                </div>
+
+                <div class="flex-1"></div>
+
+                <!-- 排序 -->
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-white/50">排序：</span>
+                    <select id="sortSelect" class="px-3 py-2 bg-cardBg border border-borderLight rounded-lg text-sm text-white focus:outline-none focus:border-primary">
+                        <option value="hot">🔥 热度</option>
+                        <option value="likes">👍 点赞</option>
+                        <option value="new">🆕 最新</option>
+                    </select>
+                </div>
+
+                <!-- 搜索 -->
+                <div class="relative">
+                    <input type="text" id="searchInput" placeholder="搜索技能..." 
+                        class="w-64 px-4 py-2 pl-10 bg-cardBg border border-borderLight rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:border-primary">
+                    <svg class="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <!-- 清空搜索按钮 -->
+                    <button id="clearSearchBtn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 技能卡片网格 -->
+        <div id="skillGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <!-- 加载中骨架屏 -->
+            <div class="loading-skeleton rounded-xl h-[280px]"></div>
+            <div class="loading-skeleton rounded-xl h-[280px]"></div>
+            <div class="loading-skeleton rounded-xl h-[280px]"></div>
+            <div class="loading-skeleton rounded-xl h-[280px]"></div>
+        </div>
+
+        <!-- 加载更多 -->
+        <div class="mt-8 text-center">
+            <button id="loadMoreBtn" class="px-8 py-3 bg-cardBg border border-borderLight rounded-lg text-white/70 hover:bg-cardBgHover hover:text-white transition-all">
+                加载更多
+            </button>
+        </div>
+    </main>
+
+    <script>
+        // API 配置
+        // const DAIBAN_API_HOST = 'http://192.168.0.117:8000';
+        const DAIBAN_API_HOST = 'https://coco.j1.sale';
+        // 获取 user_key (从 URL 参数 sn)
+        function getUserKey() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('sn') || localStorage.getItem('user_key') || '';
+        }
+        
+        // 获取带 sn 参数的 URL
+        function getUrlWithSn(path) {
+            const sn = getUserKey();
+            if (sn) {
+                return `${path}?sn=${sn}`;
+            }
+            return path;
+        }
+        
+        // 更新所有导航链接
+        function updateNavLinks() {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                const originalHref = link.getAttribute('href');
+                link.href = getUrlWithSn(originalHref);
+            });
+        }
+        
+        // 状态管理
+        let currentPage = 1;
+        let currentCategory = 'all';
+        let currentDownloadFilter = 'all';
+        let currentSort = 'hot';
+        let searchKeyword = '';
+        let isLoading = false;
+        let hasMore = true;
+        let allSkillsCache = []; // 缓存所有技能用于前端搜索
+        let downloadedSkills = new Set(); // 已下载的技能名称集合
+
+        // 分类映射
+        const categoryMap = {
+            'all': '全部',
+            'wechat': '微信',
+            'douyin': '抖音',
+            'xiaohongshu': '小红书',
+            'weibo': '微博',
+            'qq': 'QQ',
+            'taobao': '淘宝'
+        };
+
+        // 获取技能图标 - 支持自适应文字大小
+        function getSkillIconHtml(skill) {
+            let icon = skill.icon;
+            
+            // 如果没有图标，根据分类获取默认图标
+            if (!icon) {
+                const icons = {
+                    'wechat': '💬',
+                    'douyin': '🎵',
+                    'xiaohongshu': '📕',
+                    'weibo': '🐦',
+                    'qq': '💼',
+                    'taobao': '🍑',
+                    'other': '📱'
+                };
+                icon = icons[skill.category] || icons['other'];
+            }
+            
+            // 判断字符长度，应用不同样式
+            let iconClass = 'skill-icon';
+            const charLength = getStringLength(icon);
+            
+            if (charLength > 4) {
+                iconClass += ' skill-icon-text-very-long';
+            } else if (charLength > 2) {
+                iconClass += ' skill-icon-text-long';
+            }
+            
+            // 截断超长文本
+            let displayIcon = icon;
+            if (charLength > 8) {
+                displayIcon = truncateString(icon, 8) + '...';
+            }
+            
+            return `<div class="${iconClass}">${displayIcon}</div>`;
+        }
+        
+        // 获取字符串长度（中文算2个字符）
+        function getStringLength(str) {
+            if (!str) return 0;
+            let length = 0;
+            for (let char of String(str)) {
+                length += (char.charCodeAt(0) > 127) ? 2 : 1;
+            }
+            return length;
+        }
+        
+        // 截断字符串
+        function truncateString(str, maxLength) {
+            if (!str) return '';
+            let length = 0;
+            let result = '';
+            for (let char of String(str)) {
+                const charLen = (char.charCodeAt(0) > 127) ? 2 : 1;
+                if (length + charLen > maxLength) break;
+                length += charLen;
+                result += char;
+            }
+            return result;
+        }
+
+        // 获取技能背景色
+        function getSkillBg(category) {
+            const bgs = {
+                'wechat': 'bg-green-500/20',
+                'douyin': 'bg-black',
+                'xiaohongshu': 'bg-red-500/20',
+                'weibo': 'bg-yellow-500/20',
+                'qq': 'bg-blue-500/20',
+                'taobao': 'bg-orange-500/20'
+            };
+            return bgs[category] || 'bg-primary/20';
+        }
+
+        // 格式化数字
+        function formatNumber(num) {
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'k';
+            }
+            return num.toString();
+        }
+
+        // 获取已下载的技能列表
+        async function fetchDownloadedSkills() {
+            try {
+                const response = await fetch(`/base/skill/download_skills`);
+                const result = await response.json();
+                
+                if (result.code === 2000) {
+                    const data = result.data || {};
+                    const skills = data.skills || [];
+                    downloadedSkills = new Set(skills);
+                    console.log('已下载技能:', downloadedSkills);
+                }
+            } catch (error) {
+                console.error('获取已下载技能失败:', error);
+            }
+        }
+        
+        // 检查技能是否已下载
+        function isSkillDownloaded(skillName) {
+            return downloadedSkills.has(skillName);
+        }
+
+        // 获取技能列表
+        async function fetchSkills(page = 1, append = false) {
+            if (isLoading || (!append && !hasMore)) return;
+            
+            isLoading = true;
+            const userKey = getUserKey();
+            
+            const params = new URLSearchParams({
+                page: page,
+                size: 100, // 获取更多数据用于前端搜索
+                category: categoryMap[currentCategory] || '全部',
+                sort: currentSort,
+                download_status: currentDownloadFilter
+            });
+            
+            // 如果有搜索关键词，添加到参数
+            if (searchKeyword.trim()) {
+                params.append('keyword', searchKeyword.trim());
+            }
+            
+            if (userKey) {
+                params.append('user_key', userKey);
+            }
+
+            try {
+                const response = await fetch(`${DAIBAN_API_HOST}/daiban/skills?${params}`);
+                const result = await response.json();
+                
+                if (result.code === 2000) {
+                    const data = result.data || {};
+                    const skills = data.list || [];
+                    
+                    // 缓存技能数据
+                    if (page === 1) {
+                        allSkillsCache = skills;
+                    } else {
+                        allSkillsCache = allSkillsCache.concat(skills);
+                    }
+                    
+                    hasMore = skills.length === 100;
+                    
+                    // 如果有搜索关键词，进行前端过滤
+                    let displaySkills = skills;
+                    if (searchKeyword.trim() && page === 1) {
+                        displaySkills = filterSkillsByKeyword(allSkillsCache, searchKeyword.trim());
+                    }
+                    
+                    // 更新技能的下载状态
+                    displaySkills.forEach(skill => {
+                        skill.is_downloaded = isSkillDownloaded(skill.name);
+                    });
+                    
+                    if (displaySkills.length === 0 && page === 1) {
+                        renderEmpty();
+                    } else {
+                        renderSkills(displaySkills, append && !searchKeyword.trim());
+                    }
+                    
+                    currentPage = page;
+                } else {
+                    throw new Error(result.message || '获取技能列表失败');
+                }
+            } catch (error) {
+                console.error('获取技能列表失败:', error);
+                if (page === 1) {
+                    renderError('获取技能列表失败，请稍后重试');
+                }
+            } finally {
+                isLoading = false;
+                updateLoadMoreBtn();
+            }
+        }
+        
+        // 前端搜索过滤
+        function filterSkillsByKeyword(skills, keyword) {
+            const lowerKeyword = keyword.toLowerCase();
+            return skills.filter(skill => {
+                const nameMatch = skill.name && skill.name.toLowerCase().includes(lowerKeyword);
+                const descMatch = skill.description && skill.description.toLowerCase().includes(lowerKeyword);
+                const categoryMatch = skill.category && skill.category.toLowerCase().includes(lowerKeyword);
+                const authorMatch = skill.author?.name && skill.author.name.toLowerCase().includes(lowerKeyword);
+                return nameMatch || descMatch || categoryMatch || authorMatch;
+            });
+        }
+
+        // 渲染空状态
+        function renderEmpty() {
+            const grid = document.getElementById('skillGrid');
+            grid.innerHTML = `
+                <div class="col-span-full text-center py-12 text-white/50">
+                    <div class="text-4xl mb-4">📭</div>
+                    <div>暂无符合条件的技能</div>
+                    ${searchKeyword ? `<button onclick="clearSearch()" class="mt-4 px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all">清除搜索</button>` : ''}
+                </div>
+            `;
+        }
+
+        // 渲染错误状态
+        function renderError(message) {
+            const grid = document.getElementById('skillGrid');
+            grid.innerHTML = `
+                <div class="col-span-full text-center py-12 text-white/50">
+                    <div class="text-4xl mb-4">⚠️</div>
+                    <div>${message}</div>
+                    <button onclick="fetchSkills(1, false)" class="mt-4 px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all">
+                        重新加载
+                    </button>
+                </div>
+            `;
+        }
+
+        // 渲染技能卡片
+        function renderSkills(skills, append = false) {
+            const grid = document.getElementById('skillGrid');
+            
+            if (!append) {
+                grid.innerHTML = '';
+            }
+
+            skills.forEach(skill => {
+                const isDownloaded = skill.is_downloaded;
+                const bgClass = getSkillBg(skill.category);
+                
+                const card = document.createElement('div');
+                card.className = 'skill-card bg-cardBg rounded-xl border border-borderLight overflow-hidden transition-all duration-300 cursor-pointer hover:border-borderPrimaryLight hover:shadow-lg hover:shadow-primary/10';
+                card.innerHTML = `
+                    <div class="p-5">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="w-14 h-14 rounded-xl ${bgClass} flex items-center justify-center overflow-hidden">
+                                ${getSkillIconHtml(skill)}
+                            </div>
+                            ${skill.is_official ? '<span class="px-2 py-1 bg-success/20 text-success rounded text-xs">官方</span>' : ''}
+                            ${skill.is_new && !skill.is_official ? '<span class="px-2 py-1 bg-warning/20 text-warning rounded text-xs">新品</span>' : ''}
+                        </div>
+                        <h3 class="font-semibold text-lg mb-2">${skill.name}</h3>
+                        <p class="text-sm text-white/50 mb-4 line-clamp-2">${skill.description || '暂无描述'}</p>
+                        <div class="flex items-center gap-4 text-sm text-white/40">
+                            <span class="flex items-center gap-1" title="点赞数">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
+                                </svg>
+                                ${formatNumber(skill.likes || 0)}
+                            </span>
+                            <span class="flex items-center gap-1" title="下载数">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                ${formatNumber(skill.downloads || 0)}
+                            </span>
+                            <span class="flex items-center gap-1" title="在用人数">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                ${formatNumber(skill.active_users || 0)}在用
+                            </span>
+                        </div>
+                    </div>
+                    <div class="px-5 py-3 bg-black/20 border-t border-borderLight flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full ${skill.is_official ? 'bg-primary/30' : 'bg-white/10'} flex items-center justify-center text-xs overflow-hidden">
+                                ${skill.is_official ? '官' : (skill.author?.name ? skill.author.name[0] : 'U')}
+                            </div>
+                            <span class="text-xs text-white/50 truncate max-w-[80px]">${skill.author?.name || '官方团队'}</span>
+                        </div>
+                        <button onclick="${isDownloaded ? '' : `downloadSkill('${skill.id}', '${skill.name}', this)`}" 
+                            class="px-4 py-1.5 rounded-lg text-sm ${isDownloaded ? 'bg-success/20 text-success cursor-not-allowed' : 'bg-primary text-white hover:bg-primaryDark transition-all'}"
+                            ${isDownloaded ? 'disabled' : ''}>
+                            ${isDownloaded ? '已下载' : '下载'}
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        
+        // 清空搜索
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            searchKeyword = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            currentPage = 1;
+            hasMore = true;
+            fetchSkills(1, false);
+        }
+
+        // 更新加载更多按钮状态
+        function updateLoadMoreBtn() {
+            const btn = document.getElementById('loadMoreBtn');
+            if (isLoading) {
+                btn.innerHTML = '<span class="animate-spin">⟳</span> 加载中...';
+                btn.disabled = true;
+            } else if (!hasMore) {
+                btn.innerHTML = '没有更多了';
+                btn.disabled = true;
+            } else {
+                btn.innerHTML = '加载更多';
+                btn.disabled = false;
+            }
+        }
+
+        // 下载技能
+        async function downloadSkill(skillId, skillName, btn) {
+            const userKey = getUserKey();
+            if (!userKey) {
+                alert('请先登录');
+                return;
+            }
+            
+            // 如果已经下载，直接返回
+            if (btn.textContent.trim() === '已下载') {
+                return;
+            }
+            
+            // 下载技能
+            btn.disabled = true;
+            btn.innerHTML = '<span class="animate-spin">⟳</span> 下载中';
+            
+            try {
+                // 调用 /base/skill/install 接口下载技能
+                const installResponse = await fetch(`/base/skill/install`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        skill_name: skillName,
+                        user_key:userKey,
+                    })
+                });
+                const installResult = await installResponse.json();
+                
+                if (installResult.code === 2000) {
+                    // 下载成功，更新按钮状态为已下载（不可点击）
+                    btn.className = 'px-4 py-1.5 rounded-lg text-sm bg-success/20 text-success cursor-not-allowed';
+                    btn.textContent = '已下载';
+                    // 更新已下载技能集合
+                    downloadedSkills.add(skillName);
+                    alert(`技能「${skillName}」下载成功！`);
+                } else {
+                    throw new Error(installResult.message || '下载失败');
+                }
+            } catch (error) {
+                console.error('下载失败:', error);
+                alert('下载失败: ' + error.message);
+                // 恢复按钮状态
+                btn.className = 'px-4 py-1.5 rounded-lg text-sm transition-all bg-primary text-white hover:bg-primaryDark';
+                btn.textContent = '下载';
+                btn.disabled = false;
+            }
+        }
+
+        // 分类筛选切换
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.category-tab').forEach(t => {
+                    t.classList.remove('active');
+                    t.classList.add('bg-cardBg', 'text-white/70', 'border-borderLight');
+                });
+                tab.classList.add('active');
+                tab.classList.remove('bg-cardBg', 'text-white/70', 'border-borderLight');
+                
+                currentCategory = tab.dataset.category;
+                currentPage = 1;
+                hasMore = true;
+                fetchSkills(1, false);
+            });
+        });
+
+        // 下载状态筛选切换
+        document.querySelectorAll('.download-filter').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.download-filter').forEach(t => {
+                    t.classList.remove('active');
+                    t.classList.add('bg-cardBg', 'text-white/70', 'border-borderLight');
+                });
+                tab.classList.add('active');
+                tab.classList.remove('bg-cardBg', 'text-white/70', 'border-borderLight');
+                
+                currentDownloadFilter = tab.dataset.download;
+                currentPage = 1;
+                hasMore = true;
+                fetchSkills(1, false);
+            });
+        });
+
+        // 排序切换
+        document.getElementById('sortSelect').addEventListener('change', (e) => {
+            currentSort = e.target.value;
+            currentPage = 1;
+            hasMore = true;
+            fetchSkills(1, false);
+        });
+
+        // 搜索
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            const value = e.target.value.trim();
+            
+            // 显示/隐藏清空按钮
+            if (value) {
+                clearSearchBtn.classList.remove('hidden');
+            } else {
+                clearSearchBtn.classList.add('hidden');
+            }
+            
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchKeyword = value;
+                currentPage = 1;
+                hasMore = true;
+                fetchSkills(1, false);
+            }, 300);
+        });
+        
+        // 清空搜索按钮
+        clearSearchBtn.addEventListener('click', () => {
+            clearSearch();
+        });
+
+        // 加载更多
+        document.getElementById('loadMoreBtn').addEventListener('click', () => {
+            if (!isLoading && hasMore) {
+                fetchSkills(currentPage + 1, true);
+            }
+        });
+
+        // 加载用户信息
+        async function loadUserInfo() {
+            const userKey = getUserKey();
+            if (!userKey) {
+                document.getElementById('headerMemberType').textContent = '未登录';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${DAIBAN_API_HOST}/daiban/client/user_info?sn=${userKey}`);
+                const result = await response.json();
+                
+                if (result.code === 2000) {
+                    const user = result.data;
+                    const statusText = user.is_valid ? 'VIP会员' : (user.package ? '已过期' : '未开通');
+                    document.getElementById('headerMemberType').textContent = statusText;
+                } else {
+                    document.getElementById('headerMemberType').textContent = '未登录';
+                }
+            } catch (error) {
+                console.error('获取用户信息失败:', error);
+                document.getElementById('headerMemberType').textContent = '未登录';
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', async () => {
+            updateNavLinks();
+            // 更新所有内部链接
+            document.querySelectorAll('.internal-link').forEach(link => {
+                const originalHref = link.getAttribute('href');
+                link.href = getUrlWithSn(originalHref);
+            });
+            // 更新所有非导航链接
+            document.querySelectorAll('a[href^="/base/"]:not(.nav-link):not(.internal-link)').forEach(link => {
+                const originalHref = link.getAttribute('href');
+                if (!originalHref.includes('?')) {
+                    link.href = getUrlWithSn(originalHref);
+                }
+            });
+            loadUserInfo();
+            // 先获取已下载的技能列表
+            await fetchDownloadedSkills();
+            // 再获取技能列表
+            fetchSkills(1, false);
+        });
+    </script>
+</body>
+</html>

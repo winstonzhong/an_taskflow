@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设计规范 - 都包代班儿手机</title>
+    <script src="https://file.j1.sale/api/file/static/js/tailwindcss.js"></script>
+    <script src="https://file.j1.sale/api/file/static/js/utils.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg1: '#1a1a2e',
+                        darkBg2: '#16213e',
+                        primary: '#00d4ff',
+                        primaryDark: '#0099cc',
+                        success: '#4ade80',
+                        warning: '#fbbf24',
+                        danger: '#ef4444',
+                        info: '#60a5fa',
+                        cardBg: 'rgba(255, 255, 255, 0.05)',
+                        cardBgHover: 'rgba(255, 255, 255, 0.1)',
+                        borderLight: 'rgba(255, 255, 255, 0.1)',
+                        borderPrimary: 'rgba(0, 212, 255, 0.5)',
+                        borderPrimaryLight: 'rgba(0, 212, 255, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-darkBg1 to-darkBg2 min-h-screen text-white p-10 font-sans">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold text-primary mb-10">都包代班儿手机 - 设计规范</h1>
+        
+        <!-- 颜色系统 -->
+        <section class="mb-12">
+            <h2 class="text-xl font-semibold mb-6 pb-2 border-b border-borderLight">颜色系统</h2>
+            <div class="grid grid-cols-4 gap-4">
+                <div class="bg-darkBg1 p-4 rounded-lg border border-borderLight">
+                    <div class="w-full h-20 rounded-lg bg-darkBg1 border border-borderLight mb-3"></div>
+                    <p class="text-sm text-white/60">darkBg1</p>
+                    <p class="text-xs text-white/40">#1a1a2e</p>
+                </div>
+                <div class="bg-darkBg1 p-4 rounded-lg border border-borderLight">
+                    <div class="w-full h-20 rounded-lg bg-darkBg2 border border-borderLight mb-3"></div>
+                    <p class="text-sm text-white/60">darkBg2</p>
+                    <p class="text-xs text-white/40">#16213e</p>
+                </div>
+                <div class="bg-darkBg1 p-4 rounded-lg border border-borderLight">
+                    <div class="w-full h-20 rounded-lg bg-primary mb-3"></div>
+                    <p class="text-sm text-white/60">primary</p>
+                    <p class="text-xs text-white/40">#00d4ff</p>
+                </div>
+                <div class="bg-darkBg1 p-4 rounded-lg border border-borderLight">
+                    <div class="w-full h-20 rounded-lg bg-cardBg border border-borderLight mb-3"></div>
+                    <p class="text-sm text-white/60">cardBg</p>
+                    <p class="text-xs text-white/40">rgba(255,255,255,0.05)</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 状态色 -->
+        <section class="mb-12">
+            <h2 class="text-xl font-semibold mb-6 pb-2 border-b border-borderLight">状态色</h2>
+            <div class="grid grid-cols-4 gap-4">
+                <div class="bg-cardBg p-4 rounded-lg border border-borderLight">
+                    <div class="w-full h-12 rounded-lg bg-success mb-3"></div>
+                    <p class="text-sm">success - 成功</p>
+                    <p class="text-xs text-white/40">#4ade80</p>
+                </div>
+                <div class="bg-cardBg p-4 rounded-lg border border-borderLight">
+                    <div class="w-full h-12 rounded-lg bg-warning mb-3"></div>
+                    <p class="text-sm">warning - 警告</p>
+                    <p class="text-xs text-white/40">#fbbf24</p>
+                </div>
+                <div class="bg-cardBg p-4 rounded-lg border border-borderLight">
+                    <div class="w-full h-12 rounded-lg bg-danger mb-3"></div>
+                    <p class="text-sm">danger - 错误</p>
+                    <p class="text-xs text-white/40">#ef4444</p>
+                </div>
+                <div class="bg-cardBg p-4 rounded-lg border border-borderLight">
+                    <div class="w-full h-12 rounded-lg bg-info mb-3"></div>
+                    <p class="text-sm">info - 信息</p>
+                    <p class="text-xs text-white/40">#60a5fa</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 组件 -->
+        <section class="mb-12">
+            <h2 class="text-xl font-semibold mb-6 pb-2 border-b border-borderLight">组件规范</h2>
+            
+            <!-- 按钮 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-medium mb-4 text-white/80">按钮</h3>
+                <div class="flex gap-4 flex-wrap">
+                    <button class="px-6 py-2.5 bg-gradient-to-r from-primary to-primaryDark rounded-lg text-white font-medium hover:shadow-lg hover:shadow-primary/30 transition-all">
+                        主要按钮
+                    </button>
+                    <button class="px-6 py-2.5 bg-cardBg border border-borderLight rounded-lg text-white hover:bg-cardBgHover transition-all">
+                        次要按钮
+                    </button>
+                    <button class="px-6 py-2.5 bg-success rounded-lg text-white font-medium hover:shadow-lg hover:shadow-success/30 transition-all">
+                        成功按钮
+                    </button>
+                    <button class="px-6 py-2.5 bg-danger rounded-lg text-white font-medium hover:shadow-lg hover:shadow-danger/30 transition-all">
+                        危险按钮
+                    </button>
+                    <button class="px-6 py-2.5 bg-cardBg border border-borderLight rounded-lg text-white/40 cursor-not-allowed" disabled>
+                        禁用按钮
+                    </button>
+                </div>
+            </div>
+
+            <!-- 卡片 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-medium mb-4 text-white/80">卡片</h3>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-cardBg rounded-xl p-5 border border-borderLight hover:border-borderPrimaryLight transition-all cursor-pointer">
+                        <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-2xl mb-4">📱</div>
+                        <h4 class="font-medium mb-2">技能卡片</h4>
+                        <p class="text-sm text-white/50">默认状态，hover 显示边框高亮</p>
+                    </div>
+                    <div class="bg-primary/10 rounded-xl p-5 border border-borderPrimary">
+                        <div class="w-12 h-12 rounded-xl bg-primary/30 flex items-center justify-center text-2xl mb-4">✓</div>
+                        <h4 class="font-medium mb-2 text-primary">选中状态</h4>
+                        <p class="text-sm text-white/50">背景高亮，边框为主色</p>
+                    </div>
+                    <div class="bg-cardBg rounded-xl p-5 border border-borderLight opacity-60">
+                        <div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-2xl mb-4">⏸</div>
+                        <h4 class="font-medium mb-2">禁用状态</h4>
+                        <p class="text-sm text-white/50">透明度降低，不可交互</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 输入框 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-medium mb-4 text-white/80">输入框</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" placeholder="请输入内容..." 
+                        class="w-full px-4 py-3 bg-cardBg border border-borderLight rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-primary transition-all">
+                    <div class="relative">
+                        <input type="text" placeholder="搜索..." 
+                            class="w-full px-4 py-3 pl-10 bg-cardBg border border-borderLight rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-primary transition-all">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">🔍</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 标签 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-medium mb-4 text-white/80">标签</h3>
+                <div class="flex gap-3 flex-wrap">
+                    <span class="px-3 py-1 bg-primary/20 text-primary rounded-full text-xs">热门</span>
+                    <span class="px-3 py-1 bg-success/20 text-success rounded-full text-xs">新品</span>
+                    <span class="px-3 py-1 bg-warning/20 text-warning rounded-full text-xs">审核中</span>
+                    <span class="px-3 py-1 bg-cardBg border border-borderLight rounded-full text-xs text-white/60">微信</span>
+                    <span class="px-3 py-1 bg-cardBg border border-borderLight rounded-full text-xs text-white/60">抖音</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 导航 -->
+        <section class="mb-12">
+            <h2 class="text-xl font-semibold mb-6 pb-2 border-b border-borderLight">顶部导航</h2>
+            <div class="bg-cardBg rounded-xl p-4 border border-borderLight">
+                <div class="flex items-center justify-between">
+                    <div class="text-xl font-bold text-primary">都包代班儿手机</div>
+                    <nav class="flex items-center gap-8">
+                        <a href="#" class="text-primary font-medium border-b-2 border-primary pb-1">首页</a>
+                        <a href="#" class="text-white/60 hover:text-white transition-colors">技能广场</a>
+                        <a href="#" class="text-white/60 hover:text-white transition-colors">需求广场</a>
+                        <a href="#" class="text-white/60 hover:text-white transition-colors">个人中心</a>
+                    </nav>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm text-white/60">👑 会员用户</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 布局示意 -->
+        <section class="mb-12">
+            <h2 class="text-xl font-semibold mb-6 pb-2 border-b border-borderLight">页面布局结构</h2>
+            <div class="bg-cardBg rounded-xl p-6 border border-borderLight">
+                <div class="text-center mb-4 py-3 bg-primary/10 rounded-lg border border-primary/30">
+                    顶部导航栏 (居中: 首页 | 技能广场 | 需求广场 | 个人中心)
+                </div>
+                <div class="grid grid-cols-[280px_1fr_320px] gap-4">
+                    <div class="bg-darkBg1/50 rounded-lg p-4 text-center text-sm text-white/60 min-h-[400px]">
+                        左侧边栏<br>
+                        技能列表 + 配置按钮
+                    </div>
+                    <div class="bg-darkBg1/50 rounded-lg p-4 text-center text-sm text-white/60 min-h-[400px] flex items-center justify-center">
+                        中间内容区<br>
+                        手机屏幕截图 / 卡片列表 / 表单
+                    </div>
+                    <div class="bg-darkBg1/50 rounded-lg p-4 text-center text-sm text-white/60 min-h-[400px]">
+                        右侧边栏<br>
+                        执行日志 / 筛选条件 / 快捷操作
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

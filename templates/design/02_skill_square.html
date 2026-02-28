@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技能广场 - 都包代班儿手机</title>
+    <script src="https://file.j1.sale/api/file/static/js/tailwindcss.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg1: '#1a1a2e',
+                        darkBg2: '#16213e',
+                        primary: '#00d4ff',
+                        primaryDark: '#0099cc',
+                        success: '#4ade80',
+                        warning: '#fbbf24',
+                        danger: '#ef4444',
+                        info: '#60a5fa',
+                        cardBg: 'rgba(255, 255, 255, 0.05)',
+                        cardBgHover: 'rgba(255, 255, 255, 0.1)',
+                        borderLight: 'rgba(255, 255, 255, 0.1)',
+                        borderPrimary: 'rgba(0, 212, 255, 0.5)',
+                        borderPrimaryLight: 'rgba(0, 212, 255, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .skill-card:hover {
+            transform: translateY(-4px);
+        }
+        .tab-active {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-darkBg1 to-darkBg2 min-h-screen text-white font-sans">
+    <!-- 顶部导航 -->
+    <header class="sticky top-0 z-50 bg-darkBg1/90 backdrop-blur-md border-b border-borderLight">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="text-xl font-bold text-primary">都包代班儿手机</div>
+                <nav class="flex items-center gap-8">
+                    <a href="01_home_control.html" class="text-white/60 hover:text-white transition-colors">首页</a>
+                    <a href="#" class="text-primary font-medium border-b-2 border-primary pb-1">技能广场</a>
+                    <a href="03_demand_square.html" class="text-white/60 hover:text-white transition-colors">需求广场</a>
+                    <a href="04_profile.html" class="text-white/60 hover:text-white transition-colors">个人中心</a>
+                </nav>
+                <div class="flex items-center gap-3">
+                    <span class="text-lg">👑</span>
+                    <span class="text-sm text-white/80">VIP会员</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="max-w-7xl mx-auto p-6">
+        <!-- 页面标题 -->
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold mb-2">技能广场</h1>
+            <p class="text-white/50">发现并下载你需要的自动化技能</p>
+        </div>
+
+        <!-- 筛选栏 -->
+        <div class="bg-cardBg rounded-xl p-4 border border-borderLight mb-6">
+            <div class="flex flex-wrap items-center gap-4">
+                <!-- 分类标签 -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button class="category-tab px-4 py-2 rounded-lg bg-primary/20 text-primary text-sm font-medium border border-primary/50">全部</button>
+                    <button class="category-tab px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all">微信</button>
+                    <button class="category-tab px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all">抖音</button>
+                    <button class="category-tab px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all">小红书</button>
+                    <button class="category-tab px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all">微博</button>
+                    <button class="category-tab px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all">QQ</button>
+                    <button class="category-tab px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all">淘宝</button>
+                </div>
+
+                <div class="w-px h-6 bg-borderLight mx-2"></div>
+
+                <div class="flex items-center gap-2">
+                    <button class="download-filter px-4 py-2 rounded-lg bg-primary/20 text-primary text-sm font-medium border border-primary/50">全部</button>
+                    <button class="download-filter px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        已下载
+                    </button>
+                    <button class="download-filter px-4 py-2 rounded-lg bg-cardBg border border-borderLight text-white/70 text-sm hover:border-primaryLight transition-all">
+                        未下载
+                    </button>
+                </div>
+
+                <div class="flex-1"></div>
+
+                <!-- 排序 -->
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-white/50">排序：</span>
+                    <select class="px-3 py-2 bg-cardBg border border-borderLight rounded-lg text-sm text-white focus:outline-none focus:border-primary">
+                        <option value="hot">🔥 热度</option>
+                        <option value="likes">👍 点赞</option>
+                        <option value="new">🆕 最新</option>
+                    </select>
+                </div>
+
+                <!-- 搜索 -->
+                <div class="relative">
+                    <input type="text" placeholder="搜索技能..." 
+                        class="w-64 px-4 py-2 pl-10 bg-cardBg border border-borderLight rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:border-primary">
+                    <svg class="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- 技能卡片网格 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <!-- 官方推荐标签 -->
+            <div class="col-span-full mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">⭐</span>
+                    <span class="font-medium">官方推荐</span>
+                </div>
+            </div>
+
+            <!-- 技能卡片 1 - 官方推荐 -->
+            <div class="skill-card bg-cardBg rounded-xl border border-borderLight overflow-hidden transition-all duration-300 cursor-pointer hover:border-borderPrimaryLight hover:shadow-lg hover:shadow-primary/10">
+                <div class="p-5">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-14 h-14 rounded-xl bg-green-500/20 flex items-center justify-center text-3xl">
+                            💬
+                        </div>
+                        <span class="px-2 py-1 bg-success/20 text-success rounded text-xs">官方</span>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">微信自动回复</h3>
+                    <p class="text-sm text-white/50 mb-4 line-clamp-2">智能识别消息内容，根据关键词自动回复，支持自定义回复模板和延迟时间</p>
+                    <div class="flex items-center gap-4 text-sm text-white/40">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
+                            </svg>
+                            2.3k
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            856
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            1.2k在用
+                        </span>
+                    </div>
+                </div>
+                <div class="px-5 py-3 bg-black/20 border-t border-borderLight flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-primary/30 flex items-center justify-center text-xs">官</div>
+                        <span class="text-xs text-white/50">官方团队</span>
+                    </div>
+                    <button class="px-4 py-1.5 bg-primary/20 text-primary rounded-lg text-sm hover:bg-primary hover:text-white transition-all">
+                        已下载
+                    </button>
+                </div>
+            </div>
+
+            <!-- 技能卡片 2 - 官方推荐 -->
+            <div class="skill-card bg-cardBg rounded-xl border border-borderLight overflow-hidden transition-all duration-300 cursor-pointer hover:border-borderPrimaryLight hover:shadow-lg hover:shadow-primary/10">
+                <div class="p-5">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-14 h-14 rounded-xl bg-black flex items-center justify-center text-3xl">
+                            🎵
+                        </div>
+                        <span class="px-2 py-1 bg-success/20 text-success rounded text-xs">官方</span>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">抖音自动养号</h3>
+                    <p class="text-sm text-white/50 mb-4 line-clamp-2">模拟真人行为自动浏览、点赞、评论，提升账号活跃度和权重</p>
+                    <div class="flex items-center gap-4 text-sm text-white/40">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
+                            </svg>
+                            1.8k
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            642
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            890在用
+                        </span>
+                    </div>
+                </div>
+                <div class="px-5 py-3 bg-black/20 border-t border-borderLight flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-primary/30 flex items-center justify-center text-xs">官</div>
+                        <span class="text-xs text-white/50">官方团队</span>
+                    </div>
+                    <button class="px-4 py-1.5 bg-primary rounded-lg text-sm text-white hover:bg-primaryDark transition-all">
+                        下载
+                    </button>
+                </div>
+            </div>
+
+            <!-- 技能卡片 3 -->
+            <div class="skill-card bg-cardBg rounded-xl border border-borderLight overflow-hidden transition-all duration-300 cursor-pointer hover:border-borderPrimaryLight hover:shadow-lg hover:shadow-primary/10">
+                <div class="p-5">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-14 h-14 rounded-xl bg-red-500/20 flex items-center justify-center text-3xl">
+                            📕
+                        </div>
+                        <span class="px-2 py-1 bg-warning/20 text-warning rounded text-xs">新品</span>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">小红书数据采集</h3>
+                    <p class="text-sm text-white/50 mb-4 line-clamp-2">自动采集小红书笔记数据，支持导出Excel，包含点赞、收藏、评论数</p>
+                    <div class="flex items-center gap-4 text-sm text-white/40">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
+                            </svg>
+                            856
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            324
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            456在用
+                        </span>
+                    </div>
+                </div>
+                <div class="px-5 py-3 bg-black/20 border-t border-borderLight flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-purple-500/30 flex items-center justify-center text-xs">李</div>
+                        <span class="text-xs text-white/50">李明</span>
+                    </div>
+                    <button class="px-4 py-1.5 bg-primary rounded-lg text-sm text-white hover:bg-primaryDark transition-all">
+                        下载
+                    </button>
+                </div>
+            </div>
+
+            <!-- 技能卡片 4 -->
+            <div class="skill-card bg-cardBg rounded-xl border border-borderLight overflow-hidden transition-all duration-300 cursor-pointer hover:border-borderPrimaryLight hover:shadow-lg hover:shadow-primary/10">
+                <div class="p-5">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-14 h-14 rounded-xl bg-blue-500/20 flex items-center justify-center text-3xl">
+                            🐦
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">微博自动签到</h3>
+                    <p class="text-sm text-white/50 mb-4 line-clamp-2">每日自动完成微博超话签到、任务领取，支持多账号切换</p>
+                    <div class="flex items-center gap-4 text-sm text-white/40">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
+                            </svg>
+                            1.2k
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            512
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            678在用
+                        </span>
+                    </div>
+                </div>
+                <div class="px-5 py-3 bg-black/20 border-t border-borderLight flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-orange-500/30 flex items-center justify-center text-xs">王</div>
+                        <span class="text-xs text-white/50">王小明</span>
+                    </div>
+                    <button class="px-4 py-1.5 bg-primary rounded-lg text-sm text-white hover:bg-primaryDark transition-all">
+                        下载
+                    </button>
+                </div>
+            </div>
+
+            <!-- 分隔线 -->
+            <div class="col-span-full my-4 border-t border-borderLight"></div>
+
+            <!-- 更多技能 -->
+            <div class="skill-card bg-cardBg rounded-xl border border-borderLight overflow-hidden transition-all duration-300 cursor-pointer hover:border-borderPrimaryLight hover:shadow-lg hover:shadow-primary/10">
+                <div class="p-5">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-14 h-14 rounded-xl bg-orange-500/20 flex items-center justify-center text-3xl">
+                            🍑
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">淘宝自动下单</h3>
+                    <p class="text-sm text-white/50 mb-4 line-clamp-2">监控商品库存，自动下单抢购，支持多地址管理</p>
+                    <div class="flex items-center gap-4 text-sm text-white/40">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
+                            </svg>
+                            2.1k
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            923
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            1.5k在用
+                        </span>
+                    </div>
+                </div>
+                <div class="px-5 py-3 bg-black/20 border-t border-borderLight flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-green-500/30 flex items-center justify-center text-xs">张</div>
+                        <span class="text-xs text-white/50">张三</span>
+                    </div>
+                    <button class="px-4 py-1.5 bg-primary rounded-lg text-sm text-white hover:bg-primaryDark transition-all">
+                        下载
+                    </button>
+                </div>
+            </div>
+
+            <!-- 技能卡片 6 -->
+            <div class="skill-card bg-cardBg rounded-xl border border-borderLight overflow-hidden transition-all duration-300 cursor-pointer hover:border-borderPrimaryLight hover:shadow-lg hover:shadow-primary/10">
+                <div class="p-5">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-14 h-14 rounded-xl bg-blue-500/20 flex items-center justify-center text-3xl">
+                            💼
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">QQ消息群发</h3>
+                    <p class="text-sm text-white/50 mb-4 line-clamp-2">批量发送QQ消息，支持群和好友，可自定义发送间隔</p>
+                    <div class="flex items-center gap-4 text-sm text-white/40">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
+                            </svg>
+                            567
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            234
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            345在用
+                        </span>
+                    </div>
+                </div>
+                <div class="px-5 py-3 bg-black/20 border-t border-borderLight flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-blue-500/30 flex items-center justify-center text-xs">陈</div>
+                        <span class="text-xs text-white/50">陈小明</span>
+                    </div>
+                    <button class="px-4 py-1.5 bg-primary rounded-lg text-sm text-white hover:bg-primaryDark transition-all">
+                        下载
+                    </button>
+                </div>
+            </div>
+
+            <!-- 技能卡片 7 -->
+            <div class="skill-card bg-cardBg rounded-xl border border-borderLight overflow-hidden transition-all duration-300 cursor-pointer hover:border-borderPrimaryLight hover:shadow-lg hover:shadow-primary/10">
+                <div class="p-5">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-14 h-14 rounded-xl bg-pink-500/20 flex items-center justify-center text-3xl">
+                            📱
+                        </div>
+                        <span class="px-2 py-1 bg-warning/20 text-warning rounded text-xs">新品</span>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">微信朋友圈自动点赞</h3>
+                    <p class="text-sm text-white/50 mb-4 line-clamp-2">自动为好友朋友圈点赞，支持设置点赞间隔和黑名单</p>
+                    <div class="flex items-center gap-4 text-sm text-white/40">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
+                            </svg>
+                            234
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            89
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            156在用
+                        </span>
+                    </div>
+                </div>
+                <div class="px-5 py-3 bg-black/20 border-t border-borderLight flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-pink-500/30 flex items-center justify-center text-xs">刘</div>
+                        <span class="text-xs text-white/50">刘小红</span>
+                    </div>
+                    <button class="px-4 py-1.5 bg-primary rounded-lg text-sm text-white hover:bg-primaryDark transition-all">
+                        下载
+                    </button>
+                </div>
+            </div>
+
+            <!-- 技能卡片 8 -->
+            <div class="skill-card bg-cardBg rounded-xl border border-borderLight overflow-hidden transition-all duration-300 cursor-pointer hover:border-borderPrimaryLight hover:shadow-lg hover:shadow-primary/10">
+                <div class="p-5">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-14 h-14 rounded-xl bg-yellow-500/20 flex items-center justify-center text-3xl">
+                            📊
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">抖音数据分析</h3>
+                    <p class="text-sm text-white/50 mb-4 line-clamp-2">分析抖音账号数据，生成数据报告，追踪粉丝增长趋势</p>
+                    <div class="flex items-center gap-4 text-sm text-white/40">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
+                            </svg>
+                            1.5k
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            678
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            923在用
+                        </span>
+                    </div>
+                </div>
+                <div class="px-5 py-3 bg-black/20 border-t border-borderLight flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-yellow-500/30 flex items-center justify-center text-xs">赵</div>
+                        <span class="text-xs text-white/50">赵小华</span>
+                    </div>
+                    <button class="px-4 py-1.5 bg-primary rounded-lg text-sm text-white hover:bg-primaryDark transition-all">
+                        下载
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加载更多 -->
+        <div class="mt-8 text-center">
+            <button class="px-8 py-3 bg-cardBg border border-borderLight rounded-lg text-white/70 hover:bg-cardBgHover hover:text-white transition-all">
+                加载更多
+            </button>
+        </div>
+    </main>
+
+    <script>
+        // 分类切换
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.category-tab').forEach(t => {
+                    t.classList.remove('bg-primary/20', 'text-primary', 'border-primary/50');
+                    t.classList.add('bg-cardBg', 'text-white/70', 'border-borderLight');
+                });
+                tab.classList.remove('bg-cardBg', 'text-white/70', 'border-borderLight');
+                tab.classList.add('bg-primary/20', 'text-primary', 'border-primary/50');
+            });
+        });
+    </script>
+</body>
+</html>
