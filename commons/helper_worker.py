@@ -26,110 +26,9 @@ from an_taskflow.settings import CONFIGS
 
 
 
-try:
-    from PIL import Image, ImageDraw, ImageFont
-    import io
-except ImportError:
-    Image = None
-    print("未安装 PIL/Pillow，将使用模拟 Base64 图片数据（前端无法正常渲染真实图片）")
-
-
-
-class ScreenshotGenerator:
-    """截图生成器 - 生成模拟截图数据（实际项目中应替换为真实截图逻辑）"""
-
-    def __init__(self, width: int = 360, height: int = 720):
-        self.width = width
-        self.height = height
-        self.frame_count = 0
-
-    def generate(self) -> Optional[bytes]:
-        """生成模拟截图（JPEG格式）"""
-        try:
-            # 尝试使用PIL生成模拟截图
-            try:
-                from PIL import Image, ImageDraw, ImageFont
-                import io
-
-                # 创建图像
-                img = Image.new('RGB', (self.width, self.height), color='#1a1a2e')
-                draw = ImageDraw.Draw(img)
-
-                # 添加动态内容
-                self.frame_count += 1
-                hue = (self.frame_count * 5) % 360
-
-                # 绘制背景渐变效果
-                for y in range(0, self.height, 4):
-                    color_val = int(30 + (y / self.height) * 50)
-                    draw.line([(0, y), (self.width, y)], fill=(color_val, color_val, color_val + 30))
-
-                # 绘制状态栏
-                draw.rectangle([0, 0, self.width, 24], fill='#000000')
-                draw.text((10, 4), "9:41", fill='#ffffff')
-
-                # 绘制应用网格
-                app_colors = [
-                    '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4',
-                    '#feca57', '#ff9ff3', '#54a0ff', '#48dbfb',
-                ]
-                icon_size = 48
-                gap = 20
-                cols = 4
-                start_y = 60
-
-                for i in range(16):
-                    row = i // cols
-                    col = i % cols
-                    x = 20 + col * (icon_size + gap)
-                    y = start_y + row * (icon_size + gap + 20)
-
-                    color = app_colors[i % len(app_colors)]
-                    draw.rounded_rectangle([x, y, x + icon_size, y + icon_size], radius=10, fill=color)
-
-                # 绘制底部Dock
-                dock_y = self.height - 100
-                draw.rounded_rectangle([20, dock_y, self.width - 20, dock_y + 70], radius=20, fill='#ffffff20')
-                for i in range(4):
-                    x = 40 + i * (icon_size + 20)
-                    color = app_colors[i % len(app_colors)]
-                    draw.rounded_rectangle([x, dock_y + 11, x + icon_size, dock_y + 11 + icon_size], radius=10,
-                                           fill=color)
-
-                # 绘制帧率信息
-                draw.text((10, self.height - 30), f"Frame: {self.frame_count} | FPS: 10", fill='#ffffff80')
-
-                # 绘制扫描线效果
-                scan_y = (self.frame_count * 3) % self.height
-                draw.line([(0, scan_y), (self.width, scan_y)], fill='#00d4ff40', width=2)
-
-                # 转换为JPEG
-                buffer = io.BytesIO()
-                img.save(buffer, format='JPEG', quality=80)
-                return buffer.getvalue()
-
-            except ImportError:
-                # 如果PIL不可用，返回简单的测试数据
-                return self._generate_fallback_image()
-
-        except Exception as e:
-            print(f"生成截图失败: {e}")
-            return None
-
-    def _generate_fallback_image(self) -> bytes:
-        """生成备用图像数据（当PIL不可用时）"""
-        # 创建一个最小的有效JPEG文件（1x1像素）
-        # 实际应用中应该使用PIL或其他库
-        jpeg_header = bytes([
-            0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
-            0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43,
-            0x00, 0x08, 0x06, 0x06, 0x07, 0x06, 0x05, 0x08, 0x07, 0x07, 0x07, 0x09,
-        ])
-        return jpeg_header + bytes(100)  # 简化版本
-
-
-
-
+# 屏幕截图模块
+from commons.screen_capturer import ScreenCapturer, CaptureMethod
+from commons.scrcpy_capturer import ScrcpyCapturer
 
 
 
@@ -148,8 +47,65 @@ class RobotManager:
         self.stop_events: Dict[str, threading.Event] = {}
         self.lock = threading.Lock()
         self.queue_manager = get_queue_manager()
-        self.screenshot_generator = ScreenshotGenerator()
+        
+        # 初始化屏幕截图器（ADB 模式）
+        screen_capture_config = CONFIGS.get('screen_capture', {})
+        capture_interval = screen_capture_config.get('interval', 2.0)   # 默认 0.5fps（2秒间隔）
+        capture_quality = screen_capture_config.get('quality', 80)      # 默认80%质量
+        capture_scale = screen_capture_config.get('scale', 1.0)         # 默认原始分辨率
+        
+        # 使用 ScreenCapturer（ADB 截图模式）
+        self.screen_capturer = ScreenCapturer(
+            device_serial=None,
+            method=CaptureMethod.ADB,
+            capture_interval=capture_interval,
+            quality=capture_quality,
+            scale=capture_scale,
+            max_retries=3,
+            retry_interval=5.0
+        )
+        # 设置截图回调
+        self.screen_capturer.on_capture = self._on_screenshot
+        self.screen_capturer.on_error = self._on_screenshot_error
+        self.screen_capturer.on_status_change = self._on_screenshot_status_change
+        
         self.frame_count = 0
+
+    def _on_screenshot(self, screenshot_bytes: bytes):
+        """截图回调：推送截图到前端"""
+        self.frame_count += 1
+        result = {
+            'type': 'screenshot_data',
+            'data': screenshot_bytes,
+            'frame_count': self.frame_count,
+            'timestamp': time.time()
+        }
+        
+        success = self.queue_manager.put_to_ws(result, block=False)
+        if not success:
+            print(f"[RobotManager] 警告: 结果队列已满，screenshot_data消息可能丢失")
+    
+    def _on_screenshot_error(self, error_msg: str):
+        """截图错误回调"""
+        # 发送错误状态到前端
+        result = {
+            'type': 'device_status',
+            'connected': False,
+            'error': error_msg,
+            'timestamp': time.time()
+        }
+        self.queue_manager.put_to_ws(result, block=False)
+    
+    def _on_screenshot_status_change(self, status: str):
+        """截图状态变化回调"""
+        connected = status == "running"
+        result = {
+            'type': 'device_status',
+            'connected': connected,
+            'status': status,
+            'timestamp': time.time()
+        }
+        self.queue_manager.put_to_ws(result, block=False)
 
     def start_robot(self, robot_id: str, config: Dict) -> bool:
         """
@@ -181,6 +137,11 @@ class RobotManager:
             )
             thread.start()
             self.robots[robot_id] = thread
+            
+            # 启动截图器（实时截图，不等待任务执行）
+            if not self.screen_capturer._running:
+                print(f"[RobotManager] 启动截图器...")
+                self.screen_capturer.start()
 
             print(f"[RobotManager] 机器人 {robot_id} 已启动")
             return True
@@ -203,6 +164,11 @@ class RobotManager:
             # 设置停止标志
             if robot_id in self.stop_events:
                 self.stop_events[robot_id].set()
+            
+            # 停止截图器（所有机器人停止时）
+            if len(self.robots) <= 1 and self.screen_capturer._running:
+                print(f"[RobotManager] 停止截图器...")
+                self.screen_capturer.stop()
 
             print(f"[RobotManager] 机器人 {robot_id} 停止信号已发送")
             return True
@@ -214,6 +180,11 @@ class RobotManager:
 
         for robot_id in robot_ids:
             self.stop_robot(robot_id)
+        
+        # 确保截图器也被停止
+        if self.screen_capturer._running:
+            print("[RobotManager] 停止截图器...")
+            self.screen_capturer.stop()
 
     def get_robot_status(self, robot_id: Optional[str] = None) -> Dict:
         """
@@ -296,34 +267,12 @@ class RobotManager:
         """
         执行具体的机器人业务逻辑
 
-        这里可以实现：
-        - API 调用
-        - 数据库操作
-        - 文件处理
-        - 消息发送等
+        注意：截图功能已移至独立线程，不在此方法中执行
         """
-        # 示例：打印日志，实际业务中替换为真实逻辑
         task_type = config.get("task_type", "default")
         print(f"[Robot-{robot_id}] 正在执行任务: {task_type}, 第 {iteration} 次迭代")
-        # 如果需要 Django ORM 操作，可以在这里导入并使用
 
-        print('ip_port', CONFIGS.get('ip_port'))
-
-        screenshot_bytes = self.screenshot_generator.generate()
-
-        if screenshot_bytes:
-            self.frame_count += 1
-            result = {
-                'type': 'screenshot_data',
-                'data': screenshot_bytes,
-                'frame_count': self.frame_count,
-                'timestamp': time.time()
-            }
-
-            success = self.queue_manager.put_to_ws(result, block=False)
-            if not success:
-                print(f"警告: 结果队列已满，screenshot_data消息可能丢失")
-
+        # 执行定时任务
         定时任务.IP_PORT = CONFIGS.get('ip_port')
         定时任务.执行一轮定时任务(group_name__isnull=False)
 
