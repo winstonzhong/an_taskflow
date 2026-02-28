@@ -142,7 +142,7 @@
                 </div>
                 
                 <!-- 技能列表 -->
-                <div class="flex flex-col gap-2.5 mb-4" id="scriptList">
+                <div class="max-h-[400px] overflow-y-auto flex flex-col gap-2.5 mb-4 pr-1" id="scriptList" data-page="1" data-loading="false">
                     <!-- 技能卡片将通过JS动态加载 -->
                 </div>
 
@@ -179,7 +179,7 @@
                         <div class="control-result absolute top-12 left-1/2 -translate-x-1/2 bg-black/80 px-4 py-2 rounded-full text-xs opacity-0 transition-opacity duration-300" id="controlResult"></div>
 
                         <!-- 截图显示 -->
-                        <img class="screenshot-img absolute inset-0 w-full h-full object-cover hidden" id="screenshotImg" alt="手机屏幕">
+                        <img class="screenshot-img absolute inset-0 w-full h-full object-contain bg-black hidden" id="screenshotImg" alt="手机屏幕">
 
                         <!-- 未连接状态 -->
                         <div class="no-connection absolute inset-0 flex flex-col items-center justify-center text-white/40" id="noConnection">
@@ -278,14 +278,21 @@
         let skillConfigs = {};
 
         function setAllScriptsDisabled() {
+            // 只禁用卡片内容区域（抄选区域），配置按钮保持可点击
+            document.querySelectorAll('.script-card-content').forEach(content => {
+                content.style.pointerEvents = 'none';
+            });
             document.querySelectorAll('.script-card').forEach(card => {
-                card.style.pointerEvents = 'none';
+                card.classList.add('script-disabled');
             });
         }
 
         function setAllScriptsEnable() {
+            document.querySelectorAll('.script-card-content').forEach(content => {
+                content.style.pointerEvents = 'auto';
+            });
             document.querySelectorAll('.script-card').forEach(card => {
-                card.style.pointerEvents = 'auto';
+                card.classList.remove('script-disabled');
             });
         }
 
@@ -293,10 +300,13 @@
             document.querySelectorAll('.script-card').forEach(card => {
                 if (isPending) {
                     card.classList.add('script-pending');
-                    card.style.pointerEvents = 'none';
+                    // 只禁用内容区域，保留配置按钮可点击
+                    const content = card.querySelector('.script-card-content');
+                    if (content) content.style.pointerEvents = 'none';
                 } else {
                     card.classList.remove('script-pending');
-                    card.style.pointerEvents = 'auto';
+                    const content = card.querySelector('.script-card-content');
+                    if (content) content.style.pointerEvents = 'auto';
                 }
             });
         }
@@ -486,7 +496,8 @@
                 const card = document.querySelector(`[data-script="${scriptName}"]`);
                 if (card) {
                     card.classList.remove('script-pending');
-                    card.style.pointerEvents = 'auto';
+                    const content = card.querySelector('.script-card-content');
+                    if (content) content.style.pointerEvents = 'auto';
                 }
             }
 
@@ -951,8 +962,15 @@
             document.getElementById('connectMsg').innerHTML = msg
         }
 
-        function fetchSkills(forceFetch=false) {
-            let data = {}
+        // 技能列表分页配置
+        const SKILLS_PER_PAGE = 10;
+        let skillsCurrentPage = 1;
+        let skillsHasMore = true;
+        let skillsLoading = false;
+        let allSkills = [];
+
+        function fetchSkills(page=1, perPage=SKILLS_PER_PAGE, forceFetch=false) {
+            let data = {page: page, per_page: perPage}
             if (forceFetch){
                 data.force_fetch = forceFetch
             }
@@ -965,35 +983,90 @@
 
         function loadSkills(forceFetch=false){
             const scriptListEl = document.getElementById('scriptList')
-            let skillList = fetchSkills(forceFetch=forceFetch)
+            
+            // 重置分页状态
+            if (forceFetch) {
+                skillsCurrentPage = 1;
+                skillsHasMore = true;
+                allSkills = [];
+            }
+            
+            if (!skillsHasMore || skillsLoading) return;
+            
+            skillsLoading = true;
+            scriptListEl.dataset.loading = 'true';
+            
+            let skillList = fetchSkills(skillsCurrentPage, SKILLS_PER_PAGE, forceFetch)
+            
+            if (skillList.length < SKILLS_PER_PAGE) {
+                skillsHasMore = false;
+            }
+            
+            allSkills = allSkills.concat(skillList);
+            
+            // 渲染技能列表
+            renderSkills(skillList, skillsCurrentPage === 1);
+            
+            skillsCurrentPage++;
+            skillsLoading = false;
+            scriptListEl.dataset.loading = 'false';
+        }
+        
+        function renderSkills(skillList, isFirstPage){
+            const scriptListEl = document.getElementById('scriptList')
             
             let html = ''
             for (let i in skillList){
                 let skill_data = skillList[i]
                 const isActive = skill_data.是否激活;
                 html += `
-                    <div class="group relative ${isActive ? 'bg-primary/10 border-borderPrimary' : 'bg-cardBg border-transparent'} rounded-lg p-3 border hover:border-borderPrimaryLight cursor-pointer transition-all script-card ${isActive ? 'active script-active' : ''}" data-script="${skill_data.group_name}">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="script-name text-sm font-medium">${skill_data.group_name}</span>
-                            <button onclick="event.stopPropagation(); openConfig('${skill_data.group_name}')" class="p-1.5 hover:bg-white/10 rounded" title="配置">
-                                <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                </svg>
-                            </button>
+                    <div class="group relative flex items-start gap-2 ${isActive ? 'bg-primary/10 border-borderPrimary' : 'bg-cardBg border-transparent'} rounded-lg p-3 border hover:border-borderPrimaryLight cursor-pointer transition-all script-card ${isActive ? 'active script-active' : ''}" data-script="${skill_data.group_name}">
+                        <div class="script-card-content flex-1 min-w-0" data-script="${skill_data.group_name}">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="script-name text-sm font-medium truncate">${skill_data.group_name}</span>
+                            </div>
+                            <div class="text-xs text-white/50 truncate">${skill_data.描述 || '暂无描述'}</div>
                         </div>
-                        <div class="text-xs text-white/50">${skill_data.描述 || '暂无描述'}</div>
-                        ${isActive ? '<div class="absolute right-3 top-1/2 -translate-y-1/2 text-success text-sm">✓</div>' : ''}
+                        <button onclick="event.stopPropagation(); openConfig('${skill_data.group_name}')" class="config-btn p-1.5 hover:bg-white/10 rounded flex-shrink-0" title="配置">
+                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </button>
+                        ${isActive ? '<div class="absolute right-3 top-1/2 -translate-y-1/2 text-success text-sm pointer-events-none">✓</div>' : ''}
                     </div>
                 `
             }
-            scriptListEl.innerHTML = html
-
-            // 脚本卡片点击事件
-            document.querySelectorAll('.script-card').forEach(card => {
-                card.addEventListener('click', () => {
+            // 如果是第一页，清空列表；否则追加
+            if (isFirstPage) {
+                scriptListEl.innerHTML = html;
+            } else {
+                // 创建一个临时容器解析HTML并添加到列表
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                while (tempDiv.firstChild) {
+                    scriptListEl.appendChild(tempDiv.firstChild);
+                }
+            }
+            
+            // 绑定事件到新添加的卡片
+            bindSkillCardEvents();
+        }
+        
+        function bindSkillCardEvents() {
+            // 脚本卡片点击事件 - 绑定到内容区域
+            document.querySelectorAll('.script-card-content:not([data-bound="true"])').forEach(content => {
+                content.dataset.bound = 'true'; // 标记已绑定
+                
+                content.addEventListener('click', (e) => {
+                    // 如果点击的是配置按钮或其子元素，不处理
+                    if (e.target.closest('.config-btn')) {
+                        return;
+                    }
+                    
+                    const card = content.closest('.script-card');
                     const scriptName = card.dataset.script;
-                    const scriptDisplayName = card.querySelector('.script-name').textContent;
+                    const scriptDisplayName = content.querySelector('.script-name').textContent;
                     
                     if (wsClient.connectionState !== 'connected') {
                         card.classList.toggle('active');
@@ -1011,7 +1084,7 @@
 
                     const willBeActive = !card.classList.contains('active');
                     card.classList.add('script-pending');
-                    card.style.pointerEvents = 'none';
+                    content.style.pointerEvents = 'none';
 
                     wsClient.sendSingleScriptStatus(scriptName, willBeActive);
 
@@ -1024,6 +1097,22 @@
                     }
                 });
             });
+        }
+        
+        // 技能列表滚动监听
+        function setupSkillListScroll() {
+            const scriptListEl = document.getElementById('scriptList');
+            if (!scriptListEl) return;
+            
+            scriptListEl.addEventListener('scroll', () => {
+                const { scrollTop, scrollHeight, clientHeight } = scriptListEl;
+                // 当滚动到距离底部 50px 时加载更多
+                if (scrollTop + clientHeight >= scrollHeight - 50) {
+                    if (!skillsLoading && skillsHasMore) {
+                        loadSkills();
+                    }
+                }
+            })
         }
 
         // 加载用户信息
@@ -1068,6 +1157,7 @@
             loadUserInfo();
             loadSkills()
             setAllScriptsDisabled();
+            setupSkillListScroll();
         })
 
         log('页面加载完成，点击"连接服务器"开始使用', 'info');
