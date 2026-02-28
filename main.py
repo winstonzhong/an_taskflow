@@ -87,40 +87,49 @@ class ApplicationManager:
 
     def _start_django_server(self):
         """
-        在新线程中启动 Django 开发服务器
-        使用 os.system 或 subprocess 调用已有的 manage.py
+        使用 subprocess 启动 Django 开发服务器
+        subprocess 模式避免线程问题
         """
-
-        def run_django():
-            try:
-                # 启动 Django runserver（同步阻塞）
-                call_command(
-                    "runserver",
-                    f"0.0.0.0:8001",
-                    use_reloader=False,  # 关闭自动重载（异步环境下必须）
-                    use_ipv6=False,
-                    verbosity=1
-                )
-            except Exception as e:
-                print(f"Django Web 服务启动失败：{e}")
-            finally:
-                print("Django Web 服务线程已退出")
-
-
-
-
-
-        # 在新线程中启动 Django
-        self.django_thread = threading.Thread(
-            target=run_django,
-            daemon=True,
-            name="DjangoThread"
-        )
-        self.django_thread.start()
-
-        # 等待一下确保 Django 启动
-        time.sleep(2)
-        print("[Django] 服务器线程已启动")
+        import subprocess
+        import sys
+        
+        try:
+            # 使用 subprocess 启动 Django
+            self.django_process = subprocess.Popen(
+                [sys.executable, "manage.py", "runserver", "0.0.0.0:8001", "--noreload"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                universal_newlines=True
+            )
+            
+            # 等待 Django 启动
+            time.sleep(3)
+            
+            # 检查进程是否正常运行
+            if self.django_process.poll() is None:
+                print("[Django] 服务器已在子进程中启动 (PID: %d)" % self.django_process.pid)
+                
+                # 启动一个线程来读取输出
+                def read_output():
+                    for line in self.django_process.stdout:
+                        print(f"[Django] {line.rstrip()}")
+                
+                output_thread = threading.Thread(target=read_output, daemon=True)
+                output_thread.start()
+            else:
+                stdout, stderr = self.django_process.communicate(timeout=1)
+                print(f"[Django] 启动失败，退出码: {self.django_process.returncode}")
+                if stdout:
+                    print(f"[Django] 输出: {stdout}")
+                if stderr:
+                    print(f"[Django] 错误: {stderr}")
+                    
+        except Exception as e:
+            print(f"[Django] 启动异常: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _monitor_loop(self):
         """主监控循环"""
