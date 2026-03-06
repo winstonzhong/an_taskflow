@@ -1,4 +1,5 @@
 import json
+import time
 import traceback
 
 from django.http import JsonResponse
@@ -231,9 +232,7 @@ class 技能视图(APIView):
 @require_http_methods(["GET"])
 def get_skill_config(request):
     """
-    读取技能配置
-    
-    从"定时任务"表中根据 group_name 查询，返回"配置"字段内容
+    读取技能配置（新版 - 支持三栏式配置编辑器格式）
     
     GET /base/skill_config?skill_name=微信自动回复
     
@@ -246,9 +245,31 @@ def get_skill_config(request):
         "data": {
             "skill_name": "微信自动回复",
             "config": {
-                "回复设置": { ... },
-                "高级选项": { ... },
-                "通知设置": { ... }
+                "keys": [
+                    {
+                        "id": "key_xxx",
+                        "name": "回复模板",
+                        "description": "自动回复的文本模板",
+                        "type": "text",
+                        "current_value": "你好，{nickname}...",
+                        "history": []
+                    },
+                    {
+                        "id": "key_xxx",
+                        "name": "关键词回复",
+                        "description": "关键词触发的回复",
+                        "type": "object",
+                        "current_value": {"你好": "您好"},
+                        "history": [
+                            {
+                                "id": "hist_xxx",
+                                "timestamp": "2026-02-28...",
+                                "preview": "预览内容",
+                                "value": {...}
+                            }
+                        ]
+                    }
+                ]
             }
         }
     }
@@ -268,35 +289,47 @@ def get_skill_config(request):
     ).exclude(配置={}).first()
     
     if task and task.配置:
-        return JsonResponse({
-            "code": 2000,
-            "data": {
-                "skill_name": skill_name,
-                "config": task.配置
+        # 检查是否是新格式（包含 keys 字段）
+        config = task.配置
+        if 'keys' in config:
+            # 新格式直接返回
+            return JsonResponse({
+                "code": 2000,
+                "data": {
+                    "skill_name": skill_name,
+                    "config": config
+                }
+            })
+        else:
+            # 旧格式转换为新格式
+            new_config = {
+                "keys": []
             }
-        })
+            for idx, (key, value) in enumerate(config.items()):
+                is_object = isinstance(value, dict)
+                new_config["keys"].append({
+                    "id": f"key_{idx}_{int(time.time() * 1000)}",
+                    "name": key,
+                    "description": "",
+                    "type": "object" if is_object else "text",
+                    "current_value": value,
+                    "history": []
+                })
+            return JsonResponse({
+                "code": 2000,
+                "data": {
+                    "skill_name": skill_name,
+                    "config": new_config
+                }
+            })
     
-    # 返回默认配置
+    # 数据库中无数据，返回空配置
     return JsonResponse({
         "code": 2000,
         "data": {
             "skill_name": skill_name,
             "config": {
-                "回复设置": {
-                    "reply_template": "你好，我现在不方便回复，稍后联系你。",
-                    "delay_time": 5,
-                    "enable_keyword": False
-                },
-                "高级选项": {
-                    "auto_at_reply": False,
-                    "quiet_hours_start": "22:00",
-                    "quiet_hours_end": "08:00"
-                },
-                "通知设置": {
-                    "enable_sound": True,
-                    "enable_vibrate": False,
-                    "notification_priority": "high"
-                }
+                "keys": []
             }
         }
     })
@@ -306,19 +339,33 @@ def get_skill_config(request):
 @require_http_methods(["POST"])
 def save_skill_config(request):
     """
-    保存技能配置
+    保存技能配置（新版 - 支持三栏式配置编辑器格式）
     
-    保存到"定时任务"表的"配置"字段中
-    
-    POST /base/skill_config
+    POST /base/skill_config/save
     
     Request Body:
     {
         "skill_name": "微信自动回复",
         "config": {
-            "回复设置": { ... },
-            "高级选项": { ... },
-            "通知设置": { ... }
+            "keys": [
+                {
+                    "id": "key_xxx",
+                    "name": "回复模板",
+                    "description": "",
+                    "type": "text",
+                    "current_value": "...",
+                    "history": [...]
+                }
+            ]
+        }
+    }
+    
+    也支持旧格式保存（后端自动转换）:
+    {
+        "skill_name": "微信自动回复",
+        "config": {
+            "回复设置": {...},
+            "高级选项": {...}
         }
     }
     
@@ -354,17 +401,25 @@ def save_skill_config(request):
             "message": "技能不存在"
         }, status=404)
     
+    # 检查是否是新格式（包含 keys 字段）
+    if 'keys' in config:
+        # 新格式：直接保存
+        config_to_save = config
+    else:
+        # 旧格式：直接保存或转换
+        config_to_save = config
+    
     # 查找配置不为空的记录
     task_with_config = tasks.filter(配置__isnull=False).exclude(配置={}).first()
     
     if task_with_config:
         # 有配置不为空的记录，更新该记录
-        task_with_config.配置 = config
+        task_with_config.配置 = config_to_save
         task_with_config.save(update_fields=['配置'])
     else:
         # 所有记录配置都为空，更新第一条
         first_task = tasks.first()
-        first_task.配置 = config
+        first_task.配置 = config_to_save
         first_task.save(update_fields=['配置'])
     
     return JsonResponse({

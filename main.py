@@ -44,10 +44,69 @@ class ApplicationManager:
         signal.signal(signal.SIGTERM, self._signal_handler)
 
     def _signal_handler(self, signum, frame):
-        """处理系统信号，实现优雅关闭"""
+        """
+        处理系统信号，实现优雅关闭
+        
+        使用带超时的机制确保即使 stop() 方法挂起，主进程也能退出
+        """
+        import threading
+        
         print(f"\n[Main] 收到信号 {signum}，正在关闭服务...")
-        self.stop()
+        self.running = False
+        
+        # 检查是否已经在停止过程中（防止重复调用）
+        if hasattr(self, '_stopping') and self._stopping:
+            print("[Main] 停止已在进行中，跳过...")
+            return
+        self._stopping = True
+        
+        # 使用后台线程执行 stop()，防止在主线程中挂起
+        stop_thread = threading.Thread(target=self._safe_stop, name="signal_stop_handler")
+        stop_thread.daemon = True
+        stop_thread.start()
+        
+        # 等待 stop() 完成，但设置超时
+        stop_timeout = 15  # 总超时 15 秒
+        
+        # 检查 stop_thread 是否是当前线程（理论上不应该）
+        if stop_thread is not threading.current_thread():
+            stop_thread.join(timeout=stop_timeout)
+        
+        if stop_thread.is_alive():
+            print(f"\n[Main] 警告: 服务停止超时（{stop_timeout}s），强制退出...")
+            # 最后手段：强制杀死所有子进程
+            self._kill_remaining_children()
+        
+        print("\n[Main] 退出")
         sys.exit(0)
+    
+    def _safe_stop(self):
+        """
+        安全地执行 stop()，捕获所有异常
+        """
+        import threading
+        
+        try:
+            current_thread = threading.current_thread()
+            
+            # 如果监控线程存在、不是当前线程、且还活着，才等待它
+            if (hasattr(self, '_monitor_thread') and 
+                self._monitor_thread is not current_thread and 
+                self._monitor_thread.is_alive()):
+                try:
+                    self._monitor_thread.join(timeout=2)
+                except RuntimeError:
+                    # 无法 join 当前线程，忽略
+                    pass
+            
+            # 执行停止
+            self.stop()
+        except Exception as e:
+            print(f"\n[Main] 停止服务时出错: {e}")
+            import traceback
+            traceback.print_exc()
+            # 即使出错也尝试清理子进程
+            self._kill_remaining_children()
 
     def start_all(self):
         """启动所有服务"""
@@ -133,15 +192,17 @@ class ApplicationManager:
 
     def _monitor_loop(self):
         """主监控循环"""
+        self._monitor_thread = threading.current_thread()
         try:
             while self.running:
                 # 检查各服务状态
                 ws_alive = (self.websocket_server.thread is not None and
                            self.websocket_server.thread.is_alive())
                 worker_alive = self.worker.is_alive()
-                django_alive = self.django_thread.is_alive() if hasattr(self, 'django_thread') else False
-
-                # browser_alive = self.browser.is_alive()
+                # Django 是通过 subprocess 启动的，检查进程是否仍在运行
+                django_alive = (hasattr(self, 'django_process') and 
+                               self.django_process and 
+                               self.django_process.poll() is None)
 
                 if not ws_alive:
                     print("[Main] 警告: WebSocket Server 线程已停止")
@@ -150,48 +211,102 @@ class ApplicationManager:
                 if not django_alive:
                     print("[Main] 警告: Django Server 线程已停止")
 
-                # if not browser_alive:
-                #     print("[Main] 警告: browser 线程已停止")
-
-                # 每5秒打印一次队列状态
-                stats = self.queue_manager.get_stats()
-                # print(f"[Main] 队列状态 - ws_to_worker: {stats['ws_to_worker_size']}, "
-                #       f"worker_to_ws: {stats['worker_to_ws_size']}")
-
-                time.sleep(5)
+                # 使用短间隔睡眠以便及时响应 Ctrl+C
+                # 总共等待5秒，但每次只睡0.1秒
+                for _ in range(50):
+                    if not self.running:
+                        break
+                    time.sleep(0.1)
 
         except KeyboardInterrupt:
             print("\n[Main] 收到键盘中断")
         finally:
-            self.stop()
+            # 避免重复调用 stop（如果 _signal_handler 已经调用了）
+            if not (hasattr(self, '_stopping') and self._stopping):
+                self.stop()
 
     def stop(self):
         """停止所有服务"""
         print("\n[Main] 正在停止所有服务...")
         self.running = False
 
-        # 停止 Django（如果有进程）
-        if hasattr(self, 'django_process') and self.django_process:
-            print("[Main] 正在停止 Django...")
-            self.django_process.terminate()
+        # 首先发送停止信号给所有子进程（温和方式）
+        # 停止 Worker（会停止机器人进程和截图器）
+        if self.worker:
             try:
-                self.django_process.wait(timeout=5)
-            except:
-                self.django_process.kill()
+                print("[Main] 正在停止 Worker 和机器人...")
+                self.worker.stop()
+            except Exception as e:
+                print(f"[Main] Worker 停止异常: {e}")
 
         # 停止 WebSocket
         if self.websocket_server:
-            self.websocket_server.stop()
+            try:
+                print("[Main] 正在停止 WebSocket...")
+                self.websocket_server.stop()
+            except Exception as e:
+                print(f"[Main] WebSocket 停止异常: {e}")
 
-        # 停止 Worker
-        if self.worker:
-            self.worker.stop()
+        # 停止 Django（如果有进程）
+        if hasattr(self, 'django_process') and self.django_process:
+            print("[Main] 正在停止 Django...")
+            try:
+                self.django_process.terminate()
+                # 给Django进程更多时间退出
+                for _ in range(10):  # 等待最多5秒
+                    if self.django_process.poll() is not None:
+                        break
+                    time.sleep(0.5)
+                if self.django_process.poll() is None:
+                    print("[Main] Django 未响应，强制终止...")
+                    self.django_process.kill()
+                    self.django_process.wait(timeout=2)
+            except Exception as e:
+                print(f"[Main] Django 停止异常: {e}")
+                try:
+                    self.django_process.kill()
+                except:
+                    pass
 
         # 停止 browser
         if self.browser:
-            self.browser.stop()
+            try:
+                self.browser.stop()
+            except:
+                pass
 
+        # 最后手段：强制终止所有残留的子进程
+        self._kill_remaining_children()
+        
         print("[Main] 所有服务已停止")
+        
+    def _kill_remaining_children(self):
+        """清理所有残留的子进程"""
+        import psutil
+        import os
+        
+        current_process = psutil.Process(os.getpid())
+        children = current_process.children(recursive=True)
+        
+        if children:
+            print(f"[Main] 发现 {len(children)} 个残留子进程，正在清理...")
+            for child in children:
+                try:
+                    print(f"[Main] 终止子进程 PID {child.pid}")
+                    child.terminate()
+                except:
+                    pass
+            
+            # 等待一会儿
+            gone, alive = psutil.wait_procs(children, timeout=3)
+            
+            # 强制杀死未退出的进程
+            for child in alive:
+                try:
+                    print(f"[Main] 强制终止子进程 PID {child.pid}")
+                    child.kill()
+                except:
+                    pass
 
 
 def main():

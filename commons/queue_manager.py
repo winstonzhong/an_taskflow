@@ -1,19 +1,22 @@
 """
 数据队列管理模块
 负责管理 WebSocket Server 与 Worker 之间的双向通信队列
+支持线程队列和进程队列
 """
 
 import queue
 from typing import Any, Optional
 import threading
+from multiprocessing import Queue as ProcessQueue
 
 
 class QueueManager:
     """
     队列管理器单例类
-    管理两个核心队列：
+    管理核心队列：
     - ws_to_worker: WebSocket -> Worker (前端请求发送到后端处理)
     - worker_to_ws: Worker -> WebSocket (后端结果返回到前端)
+    - process_queues: 主进程与子进程间的通信队列
     """
 
     _instance = None
@@ -40,14 +43,80 @@ class QueueManager:
 
         self._maxsize = maxsize
 
-        # WebSocket -> Worker 队列：存储前端发送的请求
+        # WebSocket -> Worker 队列：存储前端发送的请求（线程间）
         self.ws_to_worker: queue.Queue = queue.Queue(maxsize=maxsize)
 
-        # Worker -> WebSocket 队列：存储Worker处理的结果
+        # Worker -> WebSocket 队列：存储Worker处理的结果（线程间）
         self.worker_to_ws: queue.Queue = queue.Queue(maxsize=maxsize)
+        
+        # 进程间通信队列：用于主进程向子进程发送命令
+        self.process_command_queues: dict[str, ProcessQueue] = {}
+        
+        # 进程间共享数据：用于子进程向主进程上报状态
+        # 注意：Manager 对象在首次创建时会启动一个服务进程
+        self._manager = None
+        self.shared_data = None
 
         self._initialized = True
         print("[QueueManager] 队列管理器初始化完成")
+    
+    def get_manager(self):
+        """
+        获取 Manager 对象（用于进程间共享数据）
+        延迟初始化，避免过早启动服务进程
+        """
+        if self._manager is None:
+            from multiprocessing import Manager
+            self._manager = Manager()
+            self.shared_data = self._manager.dict()
+            print("[QueueManager] Manager 初始化完成")
+        return self._manager
+    
+    def create_process_queue(self, robot_id: str) -> ProcessQueue:
+        """
+        为指定机器人创建进程间通信队列
+        
+        Args:
+            robot_id: 机器人ID
+            
+        Returns:
+            ProcessQueue: 进程队列
+        """
+        if robot_id in self.process_command_queues:
+            return self.process_command_queues[robot_id]
+        
+        q = ProcessQueue()
+        self.process_command_queues[robot_id] = q
+        return q
+    
+    def get_process_queue(self, robot_id: str) -> Optional[ProcessQueue]:
+        """
+        获取指定机器人的进程队列
+        
+        Args:
+            robot_id: 机器人ID
+            
+        Returns:
+            ProcessQueue 或 None
+        """
+        return self.process_command_queues.get(robot_id)
+    
+    def remove_process_queue(self, robot_id: str):
+        """
+        移除指定机器人的进程队列
+        
+        Args:
+            robot_id: 机器人ID
+        """
+        if robot_id in self.process_command_queues:
+            # 清空队列
+            q = self.process_command_queues[robot_id]
+            while not q.empty():
+                try:
+                    q.get_nowait()
+                except:
+                    break
+            del self.process_command_queues[robot_id]
 
     def put_to_worker(self, data: Any, block: bool = True, timeout: Optional[float] = None) -> bool:
         """
@@ -136,6 +205,7 @@ class QueueManager:
             "worker_to_ws_empty": self.worker_to_ws.empty(),
             "ws_to_worker_full": self.ws_to_worker.full(),
             "worker_to_ws_full": self.worker_to_ws.full(),
+            "process_queues_count": len(self.process_command_queues),
         }
 
 

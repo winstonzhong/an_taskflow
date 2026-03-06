@@ -239,7 +239,8 @@ class ScreenCapturer:
             name="ScreenCaptureThread"
         )
         self._capture_thread.start()
-        print(f"[ScreenCapturer] 截图线程已启动，帧率: {1/self.capture_interval:.1f}fps")
+        method_name = "ADB" if self._current_method == CaptureMethod.ADB else "Mock"
+        print(f"[ScreenCapturer] 截图线程已启动，模式: {method_name}, 帧率: {1/self.capture_interval:.1f}fps")
     
     def stop(self):
         """停止截图线程"""

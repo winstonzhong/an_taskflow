@@ -1,36 +1,37 @@
 """
 scrcpy 屏幕推流模块
-使用 scrcpy 实现高帧率(30fps)屏幕截图
+使用 scrcpy 或 ADB 实现屏幕截图
 """
 
 import subprocess
 import threading
 import time
 import io
+import os
+import tempfile
+import signal
 from typing import Optional, Callable, Dict, Any
 from pathlib import Path
-import tempfile
-import os
 
 
 class ScrcpyCapturer:
     """
-    scrcpy 屏幕推流器
-    通过启动 scrcpy 进程获取视频流，支持 30fps+
+    屏幕推流器
     
-    工作模式：
-    1. 帧捕获模式：定时从 scrcpy 截取单帧（兼容现有架构）
-    2. 流模式：持续输出 H.264 流（需要前端支持）
+    注意：当前使用 ADB 截图模式，因为 scrcpy 实时视频流方案
+    在录制过程中无法实时提取帧（文件缓存问题）。
+    
+    后续可以升级为真正的 scrcpy 视频流方案。
     """
     
     def __init__(self,
                  device_serial: Optional[str] = None,
-                 capture_interval: float = 0.033,  # 默认 30fps (33ms)
-                 quality: int = 60,                 # JPEG 质量（帧模式）
-                 scale: float = 0.5,                # 截图缩放（帧模式）
-                 max_size: int = 720,               # scrcpy 最大边长
-                 bit_rate: int = 2000000,           # scrcpy 码率 (2Mbps)
-                 max_fps: int = 30):                # scrcpy 最大帧率
+                 capture_interval: float = 0.5,  # 默认 2fps (500ms)
+                 quality: int = 80,              # JPEG 质量
+                 scale: float = 0.5,             # 截图缩放
+                 max_size: int = 720,            # 最大边长（仅参考）
+                 bit_rate: int = 2000000,        # 码率（仅参考）
+                 max_fps: int = 30):             # 最大帧率（仅参考）
         self.device_serial = device_serial
         self.capture_interval = capture_interval
         self.quality = quality
@@ -48,40 +49,16 @@ class ScrcpyCapturer:
         self._running: bool = False
         self._paused: bool = False
         self._capture_thread: Optional[threading.Thread] = None
-        self._scrcpy_process: Optional[subprocess.Popen] = None
+        
+        # 当前执行的子进程，用于强制终止
+        self._current_process: Optional[subprocess.Popen] = None
+        self._process_lock = threading.Lock()
         
         # 统计信息
         self.frame_count: int = 0
         self.last_capture_time: float = 0
         self.consecutive_errors: int = 0
         self._status: str = "idle"
-        
-        # 临时目录（用于 scrcpy 录制）
-        self._temp_dir = tempfile.mkdtemp(prefix="scrcpy_")
-        self._current_frame_file = os.path.join(self._temp_dir, "frame.jpg")
-        
-        # 检查 scrcpy 可用性
-        self._scrcpy_available = self._check_scrcpy()
-    
-    def _check_scrcpy(self) -> bool:
-        """检查 scrcpy 是否可用"""
-        try:
-            result = subprocess.run(
-                ["scrcpy", "--version"],
-                capture_output=True,
-                timeout=5,
-                shell=False
-            )
-            if result.returncode == 0:
-                version = result.stdout.decode().split('\n')[0]
-                print(f"[ScrcpyCapturer] 检测到 scrcpy: {version}")
-                return True
-        except (subprocess.TimeoutExpired, FileNotFoundError, PermissionError):
-            pass
-        
-        print("[ScrcpyCapturer] 信息: scrcpy 未安装，将使用 ADB 截图模式")
-        print("[ScrcpyCapturer] 提示: 安装 scrcpy 可获得更高帧率 (sudo apt install scrcpy)")
-        return False
     
     def _check_device(self) -> bool:
         """检查设备是否已连接"""
@@ -111,114 +88,79 @@ class ScrcpyCapturer:
             print(f"[ScrcpyCapturer] 设备检查失败: {e}")
             return False
     
-    def _start_scrcpy(self) -> bool:
-        """启动 scrcpy 进程（用于流捕获）"""
-        if not self._scrcpy_available:
-            return False
-        
-        try:
-            # scrcpy 参数
-            cmd = [
-                "scrcpy",
-                "--max-size", str(self.max_size),
-                "--bit-rate", str(self.bit_rate),
-                "--max-fps", str(self.max_fps),
-                "--no-control",           # 禁用控制
-                "--no-display",           # 不显示窗口
-                "--render-driver", "software",  # 使用软件渲染（服务器端）
-            ]
-            
-            if self.device_serial:
-                cmd.extend(["--serial", self.device_serial])
-            
-            print(f"[ScrcpyCapturer] 启动 scrcpy: {' '.join(cmd)}")
-            
-            # 启动 scrcpy 进程
-            self._scrcpy_process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                stdin=subprocess.DEVNULL
-            )
-            
-            # 等待启动
-            time.sleep(1)
-            
-            if self._scrcpy_process.poll() is not None:
-                stderr = self._scrcpy_process.stderr.read().decode()
-                print(f"[ScrcpyCapturer] scrcpy 启动失败: {stderr}")
-                return False
-            
-            print("[ScrcpyCapturer] scrcpy 启动成功")
-            return True
-            
-        except Exception as e:
-            print(f"[ScrcpyCapturer] 启动 scrcpy 异常: {e}")
-            return False
-    
-    def _stop_scrcpy(self):
-        """停止 scrcpy 进程"""
-        if self._scrcpy_process:
-            try:
-                self._scrcpy_process.terminate()
-                self._scrcpy_process.wait(timeout=2)
-            except subprocess.TimeoutExpired:
-                self._scrcpy_process.kill()
-            except Exception as e:
-                print(f"[ScrcpyCapturer] 停止 scrcpy 异常: {e}")
-            finally:
-                self._scrcpy_process = None
-    
     def _capture_frame_adb(self) -> Optional[bytes]:
-        """
-        使用 ADB 快速截图（降级方案，约 100-200ms）
-        优化：降低分辨率、降低质量
-        """
+        """使用 ADB 截图（支持中断）"""
         try:
-            # 使用 adb exec-out 直接获取截图
             cmd = ["adb"]
             if self.device_serial:
                 cmd.extend(["-s", self.device_serial])
             cmd.extend(["exec-out", "screencap", "-p"])
             
-            result = subprocess.run(cmd, capture_output=True, timeout=2)
-            if result.returncode != 0:
-                return None
+            # 使用 Popen 以便可以被中断
+            with self._process_lock:
+                if not self._running:
+                    return None
+                self._current_process = subprocess.Popen(
+                    cmd, 
+                    stdout=subprocess.PIPE, 
+                    stderr=subprocess.PIPE
+                )
             
-            png_data = result.stdout
-            
-            # 快速压缩
             try:
-                from PIL import Image
-                img = Image.open(io.BytesIO(png_data))
+                # 等待命令完成，超时5秒
+                stdout, stderr = self._current_process.communicate(timeout=5)
                 
-                # 快速缩放
-                if self.scale < 1.0:
-                    new_size = (int(img.width * self.scale), int(img.height * self.scale))
-                    # 使用更快的缩放算法
-                    img = img.resize(new_size, Image.Resampling.BILINEAR)
+                with self._process_lock:
+                    self._current_process = None
                 
-                # 转换格式
-                if img.mode == 'RGBA':
-                    # 快速去除透明通道
-                    r, g, b, a = img.split()
-                    img = Image.merge('RGB', (r, g, b))
-                elif img.mode != 'RGB':
-                    img = img.convert('RGB')
+                if self._current_process and self._current_process.returncode != 0:
+                    return None
                 
-                buffer = io.BytesIO()
-                img.save(buffer, format='JPEG', quality=self.quality, optimize=False)
-                return buffer.getvalue()
+                png_data = stdout
                 
-            except ImportError:
-                return png_data
+                # 压缩处理
+                try:
+                    from PIL import Image
+                    img = Image.open(io.BytesIO(png_data))
+                    
+                    # 缩放
+                    if self.scale < 1.0:
+                        new_size = (int(img.width * self.scale), int(img.height * self.scale))
+                        img = img.resize(new_size, Image.Resampling.BILINEAR)
+                    
+                    # 去除透明通道
+                    if img.mode == 'RGBA':
+                        img = img.convert('RGB')
+                    
+                    # 压缩为 JPEG
+                    buffer = io.BytesIO()
+                    img.save(buffer, format='JPEG', quality=self.quality, optimize=False)
+                    return buffer.getvalue()
+                except ImportError:
+                    # PIL 不可用，返回原始 PNG
+                    return png_data
+                except Exception:
+                    # 压缩失败，返回原始 PNG
+                    return png_data
+            except subprocess.TimeoutExpired:
+                # 超时，强制终止子进程
+                with self._process_lock:
+                    if self._current_process:
+                        try:
+                            self._current_process.kill()
+                            self._current_process.wait(timeout=1)
+                        except:
+                            pass
+                        self._current_process = None
+                return None
                 
         except Exception as e:
             return None
     
     def _capture_loop(self):
-        """截图主循环 - 高频率模式"""
+        """截图主循环"""
         print(f"[ScrcpyCapturer] 截图循环启动，目标帧率: {1/self.capture_interval:.1f}fps")
+        print("[ScrcpyCapturer] 使用 ADB 截图模式")
         
         last_capture = 0
         
@@ -237,7 +179,7 @@ class ScrcpyCapturer:
                 
                 last_capture = time.time()
                 
-                # 使用 ADB 快速截图
+                # 使用 ADB 截图
                 data = self._capture_frame_adb()
                 
                 if data:
@@ -269,7 +211,7 @@ class ScrcpyCapturer:
         if self._running:
             return
         
-        # 检查设备和 scrcpy
+        # 检查设备
         if not self._check_device():
             self._set_status("error")
             return
@@ -289,24 +231,45 @@ class ScrcpyCapturer:
         fps = 1 / self.capture_interval if self.capture_interval > 0 else 0
         print(f"[ScrcpyCapturer] 已启动，目标帧率: {fps:.1f}fps")
     
-    def stop(self):
-        """停止截图器"""
+    def stop(self, timeout: float = 3.0):
+        """
+        停止截图器
+        
+        Args:
+            timeout: 停止超时时间（秒），默认 3 秒
+        """
+        print(f"[ScrcpyCapturer] 正在停止截图器（超时: {timeout}s）...")
+        
+        # 第一步：立即终止 adb 子进程，使正在执行的 communicate() 立即返回
+        with self._process_lock:
+            if self._current_process:
+                try:
+                    print(f"[ScrcpyCapturer] 终止正在执行的 adb 进程 (PID: {self._current_process.pid})")
+                    self._current_process.kill()
+                    # 等待进程终止，但使用较短的超时
+                    try:
+                        self._current_process.wait(timeout=min(0.5, timeout * 0.2))
+                    except subprocess.TimeoutExpired:
+                        pass  # 继续执行，线程会处理
+                except Exception as e:
+                    print(f"[ScrcpyCapturer] 终止 adb 进程时出错: {e}")
+                finally:
+                    self._current_process = None
+        
+        # 第二步：通知线程停止
         self._running = False
         self._paused = False
         self._set_status("idle")
         
-        if self._capture_thread:
-            self._capture_thread.join(timeout=2)
-        
-        self._stop_scrcpy()
-        
-        # 清理临时文件
-        try:
-            if os.path.exists(self._temp_dir):
-                import shutil
-                shutil.rmtree(self._temp_dir)
-        except Exception:
-            pass
+        # 第三步：等待截图线程结束
+        if self._capture_thread and self._capture_thread.is_alive():
+            print("[ScrcpyCapturer] 等待截图线程结束...")
+            # 使用剩余的大部分超时时间等待线程
+            thread_timeout = max(0.5, timeout * 0.7)
+            self._capture_thread.join(timeout=thread_timeout)
+            
+            if self._capture_thread.is_alive():
+                print(f"[ScrcpyCapturer] 警告: 截图线程在 {thread_timeout}s 内未能停止")
         
         print("[ScrcpyCapturer] 已停止")
     
@@ -333,5 +296,5 @@ class ScrcpyCapturer:
             "paused": self._paused,
             "device_serial": self.device_serial,
             "fps": 1 / self.capture_interval if self.capture_interval > 0 else 0,
-            "scrcpy_available": self._scrcpy_available
+            "mode": "adb"  # 当前使用 ADB 模式
         }

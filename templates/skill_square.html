@@ -85,9 +85,78 @@
             background-color: #1e1e2e;
             color: #ffffff;
         }
+        
+        /* Toast 气泡提示样式 */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            animation: toastSlideIn 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 200px;
+            justify-content: center;
+        }
+        .toast.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .toast.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .toast.warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .toast.info {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .toast.hiding {
+            animation: toastSlideOut 0.3s ease-in forwards;
+        }
+        @keyframes toastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes toastSlideOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-darkBg1 to-darkBg2 min-h-screen text-white font-sans">
+    <!-- Toast 气泡提示容器 -->
+    <div class="toast-container" id="toastContainer"></div>
+    
     <!-- 顶部导航 -->
     <header class="sticky top-0 z-50 bg-darkBg1/90 backdrop-blur-md border-b border-borderLight">
         <div class="max-w-7xl mx-auto px-6 py-4">
@@ -228,6 +297,36 @@
         let allSkillsCache = []; // 缓存所有技能用于前端搜索
         let downloadedSkills = new Set(); // 已下载的技能名称集合
 
+        // Toast 气泡提示函数
+        function showToast(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            // 添加图标
+            const icons = {
+                success: '✓',
+                error: '✗',
+                warning: '⚠',
+                info: 'ℹ'
+            };
+            
+            toast.innerHTML = `
+                <span>${icons[type] || icons.info}</span>
+                <span>${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            
+            // 自动移除
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, duration);
+        }
+        
         // 分类映射
         const categoryMap = {
             'all': '全部',
@@ -332,6 +431,18 @@
                     const skills = data.skills || [];
                     downloadedSkills = new Set(skills);
                     console.log('已下载技能:', downloadedSkills);
+                    
+                    // 如果已经有技能列表缓存，更新它们的下载状态
+                    if (allSkillsCache.length > 0) {
+                        allSkillsCache.forEach(skill => {
+                            skill.is_downloaded = isSkillDownloaded(skill.name);
+                        });
+                        // 重新渲染当前列表
+                        const displaySkills = searchKeyword.trim() 
+                            ? filterSkillsByKeyword(allSkillsCache, searchKeyword.trim())
+                            : allSkillsCache.slice(0, 100);
+                        renderSkills(displaySkills, false);
+                    }
                 }
             } catch (error) {
                 console.error('获取已下载技能失败:', error);
@@ -354,9 +465,11 @@
                 page: page,
                 size: 100, // 获取更多数据用于前端搜索
                 category: categoryMap[currentCategory] || '全部',
-                sort: currentSort,
-                download_status: currentDownloadFilter
+                sort: currentSort
             });
+            
+            // 不将 download_status 传递给后端，统一在前端过滤
+            // 因为后端使用的 SkillDownload 表与本地定时任务表不一致
             
             // 如果有搜索关键词，添加到参数
             if (searchKeyword.trim()) {
@@ -373,7 +486,21 @@
                 
                 if (result.code === 2000) {
                     const data = result.data || {};
-                    const skills = data.list || [];
+                    let skills = data.list || [];
+                    
+                    // 更新技能的下载状态（使用本地已下载技能列表）
+                    skills.forEach(skill => {
+                        skill.is_downloaded = isSkillDownloaded(skill.name);
+                    });
+                    
+                    // 下载状态筛选（统一在前端过滤）
+                    if (currentDownloadFilter !== 'all') {
+                        if (currentDownloadFilter === 'downloaded') {
+                            skills = skills.filter(skill => skill.is_downloaded);
+                        } else if (currentDownloadFilter === 'undownloaded') {
+                            skills = skills.filter(skill => !skill.is_downloaded);
+                        }
+                    }
                     
                     // 缓存技能数据
                     if (page === 1) {
@@ -389,11 +516,6 @@
                     if (searchKeyword.trim() && page === 1) {
                         displaySkills = filterSkillsByKeyword(allSkillsCache, searchKeyword.trim());
                     }
-                    
-                    // 更新技能的下载状态
-                    displaySkills.forEach(skill => {
-                        skill.is_downloaded = isSkillDownloaded(skill.name);
-                    });
                     
                     if (displaySkills.length === 0 && page === 1) {
                         renderEmpty();
@@ -464,6 +586,7 @@
 
             skills.forEach(skill => {
                 const isDownloaded = skill.is_downloaded;
+                const isLiked = skill.is_liked || false;
                 const bgClass = getSkillBg(skill.category);
                 
                 const card = document.createElement('div');
@@ -480,12 +603,14 @@
                         <h3 class="font-semibold text-lg mb-2">${skill.name}</h3>
                         <p class="text-sm text-white/50 mb-4 line-clamp-2">${skill.description || '暂无描述'}</p>
                         <div class="flex items-center gap-4 text-sm text-white/40">
-                            <span class="flex items-center gap-1" title="点赞数">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
+                            <button onclick="toggleLike(${skill.id}, this)" 
+                                class="flex items-center gap-1 hover:text-primary transition-colors ${isLiked ? 'text-primary' : ''}" 
+                                title="点赞">
+                                <svg class="w-4 h-4" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
                                 </svg>
-                                ${formatNumber(skill.likes || 0)}
-                            </span>
+                                <span class="like-count">${formatNumber(skill.likes || 0)}</span>
+                            </button>
                             <span class="flex items-center gap-1" title="下载数">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
@@ -518,6 +643,56 @@
             });
         }
         
+        // 点赞/取消点赞
+        async function toggleLike(skillId, btn) {
+            const userKey = getUserKey();
+            if (!userKey) {
+                showToast('请先登录', 'warning');
+                return;
+            }
+            
+            const isLiked = btn.classList.contains('text-primary');
+            const action = isLiked ? 'unlike' : 'like';
+            const likeCountEl = btn.querySelector('.like-count');
+            
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`${DAIBAN_API_HOST}/daiban/skill/like`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_key: userKey,
+                        skill_id: skillId,
+                        action: action
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.code === 2000) {
+                    const data = result.data || {};
+                    
+                    if (data.is_liked) {
+                        btn.classList.add('text-primary');
+                        btn.querySelector('svg').setAttribute('fill', 'currentColor');
+                    } else {
+                        btn.classList.remove('text-primary');
+                        btn.querySelector('svg').setAttribute('fill', 'none');
+                    }
+                    
+                    likeCountEl.textContent = formatNumber(data.likes || 0);
+                } else {
+                    showToast(result.message || '操作失败', 'error');
+                }
+            } catch (error) {
+                console.error('点赞失败:', error);
+                showToast('点赞失败，请稍后重试', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
         // 清空搜索
         function clearSearch() {
             document.getElementById('searchInput').value = '';
@@ -547,7 +722,7 @@
         async function downloadSkill(skillId, skillName, btn) {
             const userKey = getUserKey();
             if (!userKey) {
-                alert('请先登录');
+                showToast('请先登录', 'warning');
                 return;
             }
             
@@ -578,13 +753,13 @@
                     btn.textContent = '已下载';
                     // 更新已下载技能集合
                     downloadedSkills.add(skillName);
-                    alert(`技能「${skillName}」下载成功！`);
+                    showToast(`技能「${skillName}」下载成功！`, 'success');
                 } else {
                     throw new Error(installResult.message || '下载失败');
                 }
             } catch (error) {
                 console.error('下载失败:', error);
-                alert('下载失败: ' + error.message);
+                showToast('下载失败: ' + error.message, 'error');
                 // 恢复按钮状态
                 btn.className = 'px-4 py-1.5 rounded-lg text-sm transition-all bg-primary text-white hover:bg-primaryDark';
                 btn.textContent = '下载';

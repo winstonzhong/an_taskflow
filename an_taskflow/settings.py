@@ -24,15 +24,11 @@ if sys.version_info >= (3, 10):
     collections.Hashable = Hashable
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 import yaml
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-
 sys.path.append(str(BASE_DIR.parent / "caidao"))
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 DB_DIR = BASE_DIR 
 
