@@ -155,9 +155,16 @@ class RobotManager:
         capture_quality = screen_capture_config.get('quality', 80)      # 默认80%质量
         capture_scale = screen_capture_config.get('scale', 0.5)         # 默认50%缩放
         
+        # 从配置文件读取设备IP，确保截图和执行任务使用同一设备
+        capture_device = CONFIGS.get('ip_port')
+        if capture_device:
+            print(f"[RobotManager] 截图器将使用配置设备: {capture_device}")
+        else:
+            print("[RobotManager] 警告: 配置文件中未找到 ip_port，截图器将自动选择设备")
+        
         # 优先使用 ScrcpyCapturer（真正的视频流），降级到 ScreenCapturer
         self.scrcpy_capturer = ScrcpyCapturer(
-            device_serial=None,
+            device_serial=capture_device,  # 使用配置文件中的 ip_port
             capture_interval=capture_interval,
             quality=capture_quality,
             scale=capture_scale,

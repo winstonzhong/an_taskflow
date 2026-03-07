@@ -3,6 +3,9 @@
 使用多线程同时启动 WebSocket Server、Django Server 和 Worker
 """
 
+import multiprocessing
+multiprocessing.freeze_support()  # Windows 打包必需，防止子进程无限递归
+
 import sys
 import time
 import signal
@@ -153,9 +156,30 @@ class ApplicationManager:
         import sys
         
         try:
+            # 判断是否为打包环境，使用正确的 Python 解释器
+            if getattr(sys, 'frozen', False):
+                # 打包环境：使用 _internal 目录下的 python.exe
+                python_exe = os.path.join(os.path.dirname(sys.executable), '_internal', 'python.exe')
+                if not os.path.exists(python_exe):
+                    # 备选：使用系统 PATH 中的 python
+                    python_exe = 'python'
+            else:
+                # 开发环境
+                python_exe = sys.executable
+            
+            # 定位 manage.py 的正确路径
+            if getattr(sys, 'frozen', False):
+                # 打包环境：manage.py 在 exe 所在目录的上一级（与 _internal 同级）
+                base_dir = os.path.dirname(sys.executable)
+            else:
+                # 开发环境：当前文件所在目录
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            manage_py = os.path.join(base_dir, "manage.py")
+            
             # 使用 subprocess 启动 Django
             self.django_process = subprocess.Popen(
-                [sys.executable, "manage.py", "runserver", "0.0.0.0:8001", "--noreload"],
+                [python_exe, manage_py, "runserver", "0.0.0.0:8001", "--noreload"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,

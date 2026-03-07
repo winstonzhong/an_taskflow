@@ -35,17 +35,34 @@ hidden_import_list += collect_submodules('numpy')
 # hidden_import_list += collect_submodules('pandas')
 # hidden_import_list += collect_submodules('numpy')
 
-
+hidden_import_list += collect_submodules('cffi')
+hidden_import_list += collect_submodules('pycparser')
+hidden_import_list += [
+    'cffi._pycparser',
+    'cffi.model',
+    'cffi.api',
+    'cffi.ffiplatform',
+    'cffi.verifier',
+    'cffi.lock',
+    'cffi.error',
+    'pycparser.c_parser',
+    'pycparser.c_lexer',
+    'pycparser.c_ast',
+]
 
 binaries = collect_dynamic_libs('numpy')
 hidden_import_list += ['numpy', 'numpy.core._multiarray_umath']  # 显式导入缺失模块
 
 datas = collect_data_files('pandas')
+datas += collect_data_files('cffi')
+datas += collect_data_files('pycparser')
+
 datas += [
-    ('../templates', './templates'),
-    ('../config', './config'),
-    (f'{CAIDAO_DIR}/queue_redis_json.cfg', '.'),
-    (f'{CAIDAO_DIR}/mobans', './mobans')
+    (str(BASE_DIR / 'templates'), './templates'),
+    (str(BASE_DIR / 'config'), './config'),
+    (str(BASE_DIR / 'manage.py'), '.'),  # Django manage.py
+    (str(CAIDAO_DIR / 'queue_redis_json.cfg'), '.'),
+    (str(CAIDAO_DIR / 'mobans'), './mobans')
 ]
 
 a = Analysis(
@@ -112,6 +129,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
 )
+
 
 
 coll = COLLECT(

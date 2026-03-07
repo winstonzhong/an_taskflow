@@ -59,8 +59,9 @@ class 定时任务(抽象定时任务):
 
     缓存 = {}
 
-    # IP_PORT = None
-    IP_PORT = None
+    # 从 settings 的 CONFIGS 中读取
+    from an_taskflow.settings import CONFIGS
+    IP_PORT = CONFIGS.get('ip_port')
 
     TOKEN = (
         StrSecret(b"QPvcOCN78U0vb9f7z-vOz-n3V5eiKzbhyUYSLogyS9o=")
