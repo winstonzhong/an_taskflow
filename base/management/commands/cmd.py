@@ -471,6 +471,7 @@ class Command(BaseCommand):
         parser.add_argument("--最低互动总数", nargs="?", default=0, type=int)
         
         parser.add_argument("--不回关", nargs="?", default=0, type=int)
+        parser.add_argument("--DY_FORCE_MATCH_FRIEND_VIDEO", action="store_true", default=False)
 
 
         # parser.add_argument(
@@ -495,6 +496,8 @@ class Command(BaseCommand):
 
 
     def handle(self, *args, **options):
+        if options.get("DY_FORCE_MATCH_FRIEND_VIDEO"):
+            os.environ["DY_FORCE_MATCH_FRIEND_VIDEO"] = "1"
         定时任务.IP_PORT = options.get("ip_port")
         if options.get("usb"):
             data_list = BaseAdb.get_devcie_usb()
