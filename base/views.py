@@ -409,18 +409,11 @@ def save_skill_config(request):
         # 旧格式：直接保存或转换
         config_to_save = config
     
-    # 查找配置不为空的记录
-    task_with_config = tasks.filter(配置__isnull=False).exclude(配置={}).first()
+    # 【修改】批量更新所有同 group_name 的定时任务的配置字段
+    update_count = tasks.update(配置=config_to_save)
     
-    if task_with_config:
-        # 有配置不为空的记录，更新该记录
-        task_with_config.配置 = config_to_save
-        task_with_config.save(update_fields=['配置'])
-    else:
-        # 所有记录配置都为空，更新第一条
-        first_task = tasks.first()
-        first_task.配置 = config_to_save
-        first_task.save(update_fields=['配置'])
+    # 记录日志
+    print(f"[save_skill_config] 已更新 {update_count} 条任务的配置，group_name={skill_name}")
     
     return JsonResponse({
         "code": 2000,
