@@ -14,7 +14,11 @@ import os
 from typing import List
 
 # 导入各模块
-from django.core.management import call_command
+try:
+    from whitenoise import WhiteNoise
+    WHITENOISE_AVAILABLE = True
+except ImportError:
+    WHITENOISE_AVAILABLE = False
 
 from commons.queue_manager import get_queue_manager
 from commons.websocket_server import start_websocket_server
@@ -149,70 +153,69 @@ class ApplicationManager:
 
     def _start_django_server(self):
         """
-        使用 subprocess 启动 Django 开发服务器
-        subprocess 模式避免线程问题
+        使用 waitress 启动 Django WSGI 服务
+        无需 manage.py，支持静态文件服务
         """
-        import subprocess
-        import sys
+        import threading
         
-        try:
-            # 判断是否为打包环境，使用正确的 Python 解释器
-            if getattr(sys, 'frozen', False):
-                # 打包环境：使用 _internal 目录下的 python.exe
-                python_exe = os.path.join(os.path.dirname(sys.executable), '_internal', 'python.exe')
-                if not os.path.exists(python_exe):
-                    # 备选：使用系统 PATH 中的 python
-                    python_exe = 'python'
-            else:
-                # 开发环境
-                python_exe = sys.executable
-            
-            # 定位 manage.py 的正确路径
-            if getattr(sys, 'frozen', False):
-                # 打包环境：manage.py 在 exe 所在目录的上一级（与 _internal 同级）
-                base_dir = os.path.dirname(sys.executable)
-            else:
-                # 开发环境：当前文件所在目录
-                base_dir = os.path.dirname(os.path.abspath(__file__))
-            
-            manage_py = os.path.join(base_dir, "manage.py")
-            
-            # 使用 subprocess 启动 Django
-            self.django_process = subprocess.Popen(
-                [python_exe, manage_py, "runserver", "0.0.0.0:8001", "--noreload"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-                universal_newlines=True
-            )
-            
-            # 等待 Django 启动
-            time.sleep(3)
-            
-            # 检查进程是否正常运行
-            if self.django_process.poll() is None:
-                print("[Django] 服务器已在子进程中启动 (PID: %d)" % self.django_process.pid)
+        def run_django():
+            """在线程中运行 waitress"""
+            try:
+                # 设置 Django 环境变量
+                os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'an_taskflow.settings')
                 
-                # 启动一个线程来读取输出
-                def read_output():
-                    for line in self.django_process.stdout:
-                        print(f"[Django] {line.rstrip()}")
+                # 导入并初始化 Django
+                import django
+                django.setup()
                 
-                output_thread = threading.Thread(target=read_output, daemon=True)
-                output_thread.start()
-            else:
-                stdout, stderr = self.django_process.communicate(timeout=1)
-                print(f"[Django] 启动失败，退出码: {self.django_process.returncode}")
-                if stdout:
-                    print(f"[Django] 输出: {stdout}")
-                if stderr:
-                    print(f"[Django] 错误: {stderr}")
+                # 获取 WSGI 应用
+                from django.core.wsgi import get_wsgi_application
+                application = get_wsgi_application()
+                
+                # 使用 WhiteNoise 包装，提供静态文件服务
+                if WHITENOISE_AVAILABLE:
+                    # 定位静态文件目录（打包兼容）
+                    if getattr(sys, 'frozen', False):
+                        base_dir = os.path.dirname(sys.executable)
+                    else:
+                        base_dir = os.path.dirname(os.path.abspath(__file__))
                     
-        except Exception as e:
-            print(f"[Django] 启动异常: {e}")
-            import traceback
-            traceback.print_exc()
+                    static_dir = os.path.join(base_dir, 'staticfiles')
+                    if os.path.exists(static_dir):
+                        application = WhiteNoise(application, root=static_dir)
+                        print(f"[Django] 静态文件服务: {static_dir}")
+                
+                # 启动 waitress 服务器
+                from waitress import serve
+                print("[Django] 使用 waitress 启动于 http://0.0.0.0:8001")
+                serve(
+                    application,
+                    host='0.0.0.0',
+                    port=8001,
+                    threads=4,
+                    ident='an_taskflow',
+                    channel_timeout=30,
+                    cleanup_interval=10,
+                )
+                
+            except Exception as e:
+                print(f"[Django] 服务器异常: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        # 在新线程中启动 waitress
+        self.django_thread = threading.Thread(target=run_django, name="django_server")
+        self.django_thread.daemon = True
+        self.django_thread.start()
+        
+        # 等待服务器启动
+        time.sleep(2)
+        
+        # 检查线程是否存活
+        if self.django_thread.is_alive():
+            print("[Django] 服务器已成功启动")
+        else:
+            print("[Django] 警告: 服务器线程意外终止")
 
     def _monitor_loop(self):
         """主监控循环"""
@@ -223,10 +226,10 @@ class ApplicationManager:
                 ws_alive = (self.websocket_server.thread is not None and
                            self.websocket_server.thread.is_alive())
                 worker_alive = self.worker.is_alive()
-                # Django 是通过 subprocess 启动的，检查进程是否仍在运行
-                django_alive = (hasattr(self, 'django_process') and 
-                               self.django_process and 
-                               self.django_process.poll() is None)
+                # Django 是通过线程启动的，检查线程是否仍在运行
+                django_alive = (hasattr(self, 'django_thread') and 
+                               self.django_thread and 
+                               self.django_thread.is_alive())
 
                 if not ws_alive:
                     print("[Main] 警告: WebSocket Server 线程已停止")
@@ -271,26 +274,11 @@ class ApplicationManager:
             except Exception as e:
                 print(f"[Main] WebSocket 停止异常: {e}")
 
-        # 停止 Django（如果有进程）
-        if hasattr(self, 'django_process') and self.django_process:
-            print("[Main] 正在停止 Django...")
-            try:
-                self.django_process.terminate()
-                # 给Django进程更多时间退出
-                for _ in range(10):  # 等待最多5秒
-                    if self.django_process.poll() is not None:
-                        break
-                    time.sleep(0.5)
-                if self.django_process.poll() is None:
-                    print("[Main] Django 未响应，强制终止...")
-                    self.django_process.kill()
-                    self.django_process.wait(timeout=2)
-            except Exception as e:
-                print(f"[Main] Django 停止异常: {e}")
-                try:
-                    self.django_process.kill()
-                except:
-                    pass
+        # 停止 Django（线程模式，无法强制终止，只能等待）
+        if hasattr(self, 'django_thread') and self.django_thread:
+            print("[Main] Django 线程将在主进程退出时自动终止")
+            # 由于 waitress 阻塞在线程中，无法优雅停止
+            # 线程作为 daemon=True，主进程退出时自动结束
 
         # 停止 browser
         if self.browser:

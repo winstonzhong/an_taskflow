@@ -50,8 +50,12 @@ hidden_import_list += [
     'pycparser.c_ast',
 ]
 
+
+
 binaries = collect_dynamic_libs('numpy')
-hidden_import_list += ['numpy', 'numpy.core._multiarray_umath']  # 显式导入缺失模块
+# hidden_import_list += ['numpy', 'numpy.core._multiarray_umath']  # 显式导入缺失模块
+hidden_import_list += collect_submodules('waitress')
+hidden_import_list += collect_submodules('whitenoise')
 
 datas = collect_data_files('pandas')
 datas += collect_data_files('cffi')
@@ -60,10 +64,18 @@ datas += collect_data_files('pycparser')
 datas += [
     (str(BASE_DIR / 'templates'), './templates'),
     (str(BASE_DIR / 'config'), './config'),
-    (str(BASE_DIR / 'manage.py'), '.'),  # Django manage.py
+    # (str(BASE_DIR / 'manage.py'), '.'),  # Django manage.py（保留兼容性）
     (str(CAIDAO_DIR / 'queue_redis_json.cfg'), '.'),
-    (str(CAIDAO_DIR / 'mobans'), './mobans')
+    (str(CAIDAO_DIR / 'mobans'), './mobans'),
+    (str(CAIDAO_DIR / 'prompt'), './prompt'),  # prompt 模板文件目录
+    (str(CAIDAO_DIR / 'cn_stopwords.txt'), '.'),  # jieba 停用词表
+    (str(CAIDAO_DIR / 'cn_userdict_hairstyles.txt'), '.'),  # jieba 用户词典
+
 ]
+
+staticfiles_dir = BASE_DIR / 'staticfiles'
+if staticfiles_dir.exists():
+    datas.append((str(staticfiles_dir), './staticfiles'))
 
 a = Analysis(
     ['../main.py'],
