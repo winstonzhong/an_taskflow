@@ -87,9 +87,14 @@ class TestSkillConfigSave:
         task2.refresh_from_db()
         task3.refresh_from_db()
         
-        assert task1.配置 == new_config
-        assert task2.配置 == new_config
-        assert task3.配置 == new_config
+        # 保存后配置会被转换为数据库存储格式（平铺字典）
+        # 注意：空 history 不会被存储
+        expected_stored_config = {
+            "测试配置项": "测试值"
+        }
+        assert task1.配置 == expected_stored_config
+        assert task2.配置 == expected_stored_config
+        assert task3.配置 == expected_stored_config
         
         print(f"✅ 成功更新 {self.skill_name} 下所有任务的配置")
     
@@ -291,7 +296,7 @@ class TestSkillConfigIntegration:
                 },
                 {
                     "name": "延迟设置",
-                    "type": "kv",
+                    "type": "object",  # 注意：使用 "object" 而不是 "kv"
                     "current_value": {"最小": 1, "最大": 5},
                     "history": []
                 }
@@ -322,6 +327,6 @@ class TestSkillConfigIntegration:
         assert len(retrieved_config['keys']) == 2
         assert retrieved_config['keys'][0]['name'] == "API密钥"
         assert retrieved_config['keys'][0]['current_value'] == "sk-123456"
-        assert retrieved_config['keys'][1]['type'] == "kv"
+        assert retrieved_config['keys'][1]['type'] == "object"
         
         print("✅ 保存和读取配置一致性测试通过")

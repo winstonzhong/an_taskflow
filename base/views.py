@@ -16,6 +16,152 @@ from commons.utils import api_ret_data, format_field
 from tool_img import bin_to_base64url
 
 
+def _convert_to_keys_format(config):
+    """
+    将数据库存储格式转换为前端需要的 keys 格式
+    
+    规则：
+    - 无下划线的 key → 普通配置项，展示
+    - 以 _历史 结尾 → 作为对应 key 的 history 字段
+    - 以 _描述 结尾 → 作为对应 key 的 description 字段
+    - 其他带下划线的 → 内置配置项，不展示
+    
+    Args:
+        config: 数据库中存储的配置字典
+        
+    Returns:
+        dict: {"keys": [...]} 格式
+    """
+    if not isinstance(config, dict):
+        return {"keys": []}
+    
+    # 收集所有元数据
+    metadata = {}  # {base_key: {"history": [...], "description": "..."}}
+    base_keys = []
+    
+    for key in config.keys():
+        if "_" not in key:
+            # 普通配置项（无下划线）
+            base_keys.append(key)
+        elif key.endswith("_历史"):
+            base_key = key[:-3]  # 去掉 "_历史"
+            metadata.setdefault(base_key, {})["history"] = config[key]
+        elif key.endswith("_描述"):
+            base_key = key[:-3]  # 去掉 "_描述"
+            metadata.setdefault(base_key, {})["description"] = config[key]
+        # 其他带下划线的（内置配置项）直接忽略，不展示
+    
+    # 构建 keys 列表（只包含普通配置项）
+    keys = []
+    for idx, key in enumerate(base_keys):
+        value = config[key]
+        meta = metadata.get(key, {})
+        is_object = isinstance(value, dict)
+        
+        keys.append({
+            "id": f"key_{idx}_{int(time.time() * 1000)}",
+            "name": key,
+            "description": meta.get("description", ""),
+            "type": "object" if is_object else "text",
+            "current_value": value,
+            "history": meta.get("history", [])
+        })
+    
+    return {"keys": keys}
+
+
+def _convert_from_keys_format(keys_config, original_config=None):
+    """
+    将前端 keys 格式转换为数据库存储格式
+    
+    Args:
+        keys_config: 前端传来的 {"keys": [...]} 格式
+        original_config: 原始配置（用于保留内置配置项）
+        
+    Returns:
+        dict: 存储到数据库的配置字典
+    """
+    # 如果提供了原始配置，保留其中的内置配置项（带下划线的）
+    new_config = {}
+    if original_config and isinstance(original_config, dict):
+        for key, value in original_config.items():
+            if "_" in key and not key.endswith("_历史") and not key.endswith("_描述"):
+                # 保留内置配置项（如 视频评论提示词_pdd_rights）
+                new_config[key] = value
+    
+    # 写入新的普通配置项和元数据
+    for key in keys_config.get("keys", []):
+        name = key["name"]
+        # 存储主值
+        new_config[name] = key["current_value"]
+        
+        # 存储描述（如果有）
+        if key.get("description"):
+            new_config[f"{name}_描述"] = key["description"]
+        
+        # 存储历史（如果有）
+        if key.get("history"):
+            new_config[f"{name}_历史"] = key["history"]
+    
+    return new_config
+
+
+def _convert_to_keys_format_with_merge(db_config, filtered_config):
+    """
+    将过滤后的配置转换为前端需要的 keys 格式，同时提取历史和描述
+    
+    Args:
+        db_config: 数据库中存储的配置（用于提取历史和描述等元数据，可能为空）
+        filtered_config: 过滤后的配置（从 基本任务.config 过滤内置配置项后的结果，包含历史和描述）
+        
+    Returns:
+        dict: {"keys": [...]} 格式
+    """
+    if not isinstance(db_config, dict):
+        db_config = {}
+    
+    # 【修改】从 filtered_config 中收集元数据（历史和描述）
+    # 因为历史和描述可能在 基本任务.config 中（远程 paras + 本地配置合并后的结果）
+    metadata = {}
+    for key in filtered_config.keys():
+        if key.endswith("_历史"):
+            base_key = key[:-3]  # 去掉 "_历史"
+            metadata.setdefault(base_key, {})["history"] = filtered_config[key]
+        elif key.endswith("_描述"):
+            base_key = key[:-3]  # 去掉 "_描述"
+            metadata.setdefault(base_key, {})["description"] = filtered_config[key]
+    
+    # 【补充】也从 db_config 中收集（本地配置的元数据优先级更高）
+    for key in db_config.keys():
+        if key.endswith("_历史"):
+            base_key = key[:-3]
+            metadata.setdefault(base_key, {})["history"] = db_config[key]
+        elif key.endswith("_描述"):
+            base_key = key[:-3]
+            metadata.setdefault(base_key, {})["description"] = db_config[key]
+    
+    # 使用 filtered_config 的值（已过滤内置配置项，排除元数据 key）
+    keys = []
+    for idx, (key, value) in enumerate(filtered_config.items()):
+        # 跳过元数据 key
+        if key.endswith("_历史") or key.endswith("_描述"):
+            continue
+        
+        meta = metadata.get(key, {})
+        is_object = isinstance(value, dict)
+        
+        keys.append({
+            "id": f"key_{idx}_{int(time.time() * 1000)}",
+            "name": key,
+            "description": meta.get("description", ""),
+            "type": "object" if is_object else "text",
+            "current_value": value,
+            "history": meta.get("history", [])
+        })
+    
+    return {"keys": keys}
+
+
 def 获取记录(func):
     """独立装饰器：无需依赖任何类，可复用"""
 
@@ -282,46 +428,60 @@ def get_skill_config(request):
             "message": "缺少 skill_name 参数"
         }, status=400)
     
-    # 查询 group_name 匹配且 配置 不为空的记录
-    task = 定时任务.objects.filter(
-        group_name=skill_name,
-        配置__isnull=False
-    ).exclude(配置={}).first()
+    # 查询 group_name 匹配的记录（不再要求配置不为空，因为配置可能只在远程 paras 中）
+    task = 定时任务.objects.filter(group_name=skill_name).first()
     
-    if task and task.配置:
-        # 检查是否是新格式（包含 keys 字段）
-        config = task.配置
-        if 'keys' in config:
-            # 新格式直接返回
-            return JsonResponse({
-                "code": 2000,
-                "data": {
-                    "skill_name": skill_name,
-                    "config": config
-                }
-            })
-        else:
-            # 旧格式转换为新格式
-            new_config = {
-                "keys": []
-            }
-            for idx, (key, value) in enumerate(config.items()):
-                is_object = isinstance(value, dict)
-                new_config["keys"].append({
-                    "id": f"key_{idx}_{int(time.time() * 1000)}",
-                    "name": key,
-                    "description": "",
-                    "type": "object" if is_object else "text",
-                    "current_value": value,
-                    "history": []
+    if task:
+        # 【修改】从基本任务.config 读取全量配置（已合并远程 paras + 本地配置）
+        full_config = {}
+        try:
+            # 获取远程流程
+            远程流程 = task.远程流程
+            # 获取主任务的 config（已合并的全量配置，包括内置配置项）
+            if 远程流程.jobs:
+                主任务 = 远程流程.jobs[-1]
+                full_config = dict(主任务.config)  # PropDict 转普通 dict
+        except Exception as e:
+            print(f"[get_skill_config] 获取远程配置失败: {e}")
+        
+        # 【新增】如果无法从远程流程获取配置，降级到从 task.配置 读取
+        if not full_config and task.配置:
+            # 使用 task.配置作为数据源（兼容测试场景）
+            if "keys" in task.配置:
+                # 已经是前端格式，直接返回
+                return JsonResponse({
+                    "code": 2000,
+                    "data": {
+                        "skill_name": skill_name,
+                        "config": task.配置
+                    }
                 })
-            return JsonResponse({
-                "code": 2000,
-                "data": {
-                    "skill_name": skill_name,
-                    "config": new_config
-                }
-            })
+            else:
+                # 数据库存储格式，转换为前端格式
+                full_config = dict(task.配置)
+        
+        # 【新增】过滤内置配置项（只在前端展示时过滤）
+        # 只展示：无下划线的普通配置项 + 元数据（_历史、_描述）
+        filtered_config = {}
+        for key, value in full_config.items():
+            # 无下划线的普通配置项 → 展示
+            if "_" not in key:
+                filtered_config[key] = value
+            # 以 _历史/_描述 结尾的元数据 → 展示（作为对应 key 的属性）
+            elif key.endswith("_历史") or key.endswith("_描述"):
+                filtered_config[key] = value
+            # 其他带下划线的内置配置项 → 不展示（如 视频评论提示词_pdd_rights）
+        
+        # 转换为前端格式（使用 task.配置 中的元数据）
+        converted_config = _convert_to_keys_format_with_merge(task.配置, filtered_config)
+        
+        return JsonResponse({
+            "code": 2000,
+            "data": {
+                "skill_name": skill_name,
+                "config": converted_config
+            }
+        })
     
     # 数据库中无数据，返回空配置
     return JsonResponse({
@@ -401,12 +561,16 @@ def save_skill_config(request):
             "message": "技能不存在"
         }, status=404)
     
-    # 检查是否是新格式（包含 keys 字段）
+    # 检查是否是前端传来的 keys 格式
     if 'keys' in config:
-        # 新格式：直接保存
-        config_to_save = config
+        # 获取第一条任务的原始配置（用于保留内置配置项）
+        first_task = tasks.first()
+        original_config = first_task.配置 if first_task else None
+        
+        # 转换为数据库存储格式
+        config_to_save = _convert_from_keys_format(config, original_config)
     else:
-        # 旧格式：直接保存或转换
+        # 旧格式：直接保存
         config_to_save = config
     
     # 【修改】批量更新所有同 group_name 的定时任务的配置字段
