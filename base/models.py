@@ -52,17 +52,17 @@ class 定时任务(抽象定时任务):
     上一次推送时间 = models.DateTimeField(null=True, blank=True)
     是否服务任务 = models.BooleanField(default=False)
     
-    两次最小间隔秒 = models.IntegerField(default=10*60)
+    两次运行最小间隔秒 = models.IntegerField(default=10*60)
     
     # 【新增】配置与模型字段的映射关系
     # 这些配置项在前端展示为普通配置，但实际存储在模型字段中
     # 格式: {'前端显示名称': {'field': '模型字段名', 'type': 类型, 'legacy_names': [旧名称列表]}}
     MODEL_CONFIG_FIELDS = {
-        # '间隔秒': {'field': '间隔秒', 'type': int},  # 【旧】已改用两次最小间隔秒
-        '两次最小间隔秒': {
-            'field': '两次最小间隔秒', 
+        # '间隔秒': {'field': '间隔秒', 'type': int},  # 【旧】已改用两次运行最小间隔秒
+        '两次运行最小间隔秒': {
+            'field': '两次运行最小间隔秒', 
             'type': int,
-            'legacy_names': ['两次运行最小间隔秒数'],  # 【旧】兼容老数据
+            'legacy_names': ['两次最小间隔秒', '两次运行最小间隔秒数'],  # 【旧】兼容老数据
         },
         # 未来可以扩展更多字段：
         # '优先级': {'field': '优先级', 'type': int},

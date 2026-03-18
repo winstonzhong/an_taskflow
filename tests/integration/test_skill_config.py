@@ -253,23 +253,23 @@ class TestSkillConfigSave:
 
     def test_save_model_field_config(self):
         """
-        【新增】测试保存模型字段配置（如 两次最小间隔秒）
+        【新增】测试保存模型字段配置（如 两次运行最小间隔秒）
         
         场景：
-        - 保存包含 两次最小间隔秒 的配置
-        - 验证 两次最小间隔秒 被保存到模型字段，而不是配置 JSON
+        - 保存包含 两次运行最小间隔秒 的配置
+        - 验证 两次运行最小间隔秒 被保存到模型字段，而不是配置 JSON
         """
-        # 准备：创建任务，设置初始两次最小间隔秒
+        # 准备：创建任务，设置初始两次运行最小间隔秒
         task = 定时任务.objects.create(
             名称="模型字段测试任务",
             group_name="模型字段测试技能",
             激活=True,
-            两次最小间隔秒=300,  # 初始值 5 分钟
+            两次运行最小间隔秒=300,  # 初始值 5 分钟
             配置={},
             设定时间=timezone.now()
         )
         
-        # 新配置，包含两次最小间隔秒
+        # 新配置，包含两次运行最小间隔秒
         config_with_interval = {
             "keys": [
                 {
@@ -279,7 +279,7 @@ class TestSkillConfigSave:
                     "history": []
                 },
                 {
-                    "name": "两次最小间隔秒",
+                    "name": "两次运行最小间隔秒",
                     "type": "text",
                     "current_value": 600,  # 10 分钟
                     "history": [],
@@ -303,14 +303,14 @@ class TestSkillConfigSave:
         data = json.loads(response.content)
         assert data['code'] == 2000
         
-        # 验证：两次最小间隔秒被更新到模型字段
+        # 验证：两次运行最小间隔秒被更新到模型字段
         task.refresh_from_db()
-        assert task.两次最小间隔秒 == 600  # 验证模型字段被更新
+        assert task.两次运行最小间隔秒 == 600  # 验证模型字段被更新
         
         # 验证：普通配置项保存到配置 JSON
         assert task.配置 == {"普通配置项": "普通值"}
         
-        print("✅ 模型字段（两次最小间隔秒）保存成功")
+        print("✅ 模型字段（两次运行最小间隔秒）保存成功")
 
     def test_save_config_query_last_record(self):
         """
@@ -450,7 +450,7 @@ class TestSkillConfigIntegration:
         assert data['code'] == 2000
         retrieved_config = data['data']['config']
         
-        # 【修改】现在会额外返回模型字段配置（如 两次最小间隔秒）
+        # 【修改】现在会额外返回模型字段配置（如 两次运行最小间隔秒）
         # 所以 keys 数量 = 保存的 keys + 模型字段
         assert len(retrieved_config['keys']) >= 2
         
@@ -463,10 +463,10 @@ class TestSkillConfigIntegration:
         
         # 验证模型字段也被返回
         model_keys = [k for k in retrieved_config['keys'] if k.get('_is_model_field')]
-        assert len(model_keys) >= 1  # 至少包含 两次最小间隔秒
-        interval_key = next((k for k in model_keys if k['name'] == '两次最小间隔秒'), None)
+        assert len(model_keys) >= 1  # 至少包含 两次运行最小间隔秒
+        interval_key = next((k for k in model_keys if k['name'] == '两次运行最小间隔秒'), None)
         assert interval_key is not None
-        # 两次最小间隔秒的值直接从模型字段读取（使用默认值 600）
+        # 两次运行最小间隔秒的值直接从模型字段读取（使用默认值 600）
         assert interval_key['current_value'] == 600  # 默认值 10*60
         
         print("✅ 保存和读取配置一致性测试通过")
@@ -487,7 +487,7 @@ class TestSkillConfigIntegration:
             名称="第一条任务",
             group_name=skill_name,
             激活=True,
-            两次最小间隔秒=300,
+            两次运行最小间隔秒=300,
             配置={"配置": "第一条"},
             设定时间=timezone.now()
         )
@@ -495,7 +495,7 @@ class TestSkillConfigIntegration:
             名称="最后一条任务",
             group_name=skill_name,
             激活=True,
-            两次最小间隔秒=600,
+            两次运行最小间隔秒=600,
             配置={"配置": "最后一条"},
             设定时间=timezone.now()
         )
@@ -510,7 +510,7 @@ class TestSkillConfigIntegration:
         
         # 验证返回的模型字段是最后一条任务的值
         model_keys = [k for k in data['data']['config']['keys'] if k.get('_is_model_field')]
-        interval_key = next((k for k in model_keys if k['name'] == '两次最小间隔秒'), None)
+        interval_key = next((k for k in model_keys if k['name'] == '两次运行最小间隔秒'), None)
         assert interval_key is not None
         assert interval_key['current_value'] == 600  # 最后一条任务的值
         
@@ -705,21 +705,21 @@ class TestSkillConfigDuplicateHandling:
         测试模型字段优先于 JSON 配置
         
         场景：
-        - JSON 配置中有 "两次最小间隔秒" 这个 key
-        - MODEL_CONFIG_FIELDS 也有 "两次最小间隔秒"
+        - JSON 配置中有 "两次运行最小间隔秒" 这个 key
+        - MODEL_CONFIG_FIELDS 也有 "两次运行最小间隔秒"
         - 验证只展示模型字段的值，JSON 中的被忽略
         """
         client = Client()
         skill_name = "重复配置处理测试"
         
-        # 准备：创建任务，JSON 配置中有 "两次最小间隔秒"，同时模型字段也有值
+        # 准备：创建任务，JSON 配置中有 "两次运行最小间隔秒"，同时模型字段也有值
         task = 定时任务.objects.create(
             名称="重复配置任务",
             group_name=skill_name,
             激活=True,
-            两次最小间隔秒=600,  # 模型字段值
+            两次运行最小间隔秒=600,  # 模型字段值
             配置={
-                "两次最小间隔秒": 300,  # JSON 配置值（应该被忽略）
+                "两次运行最小间隔秒": 300,  # JSON 配置值（应该被忽略）
                 "普通配置": "应该显示"
             },
             设定时间=timezone.now()
@@ -736,8 +736,8 @@ class TestSkillConfigDuplicateHandling:
         config = data['data']['config']
         keys = config['keys']
         
-        # 验证只返回一个 "两次最小间隔秒"（模型字段的）
-        interval_keys = [k for k in keys if k['name'] == '两次最小间隔秒']
+        # 验证只返回一个 "两次运行最小间隔秒"（模型字段的）
+        interval_keys = [k for k in keys if k['name'] == '两次运行最小间隔秒']
         assert len(interval_keys) == 1
         
         # 验证返回的是模型字段的值（600），而不是 JSON 中的值（300）
@@ -756,7 +756,7 @@ class TestSkillConfigDuplicateHandling:
         测试保存时正确处理重名配置
         
         场景：
-        - 前端传来的配置包含 "两次最小间隔秒"
+        - 前端传来的配置包含 "两次运行最小间隔秒"
         - 验证保存时正确区分 JSON 配置和模型字段
         """
         client = Client()
@@ -767,12 +767,12 @@ class TestSkillConfigDuplicateHandling:
             名称="保存测试任务",
             group_name=skill_name,
             激活=True,
-            两次最小间隔秒=300,
+            两次运行最小间隔秒=300,
             配置={"旧配置": "旧值"},
             设定时间=timezone.now()
         )
         
-        # 新配置，包含两次最小间隔秒（标记为模型字段）
+        # 新配置，包含两次运行最小间隔秒（标记为模型字段）
         config_with_interval = {
             "keys": [
                 {
@@ -782,7 +782,7 @@ class TestSkillConfigDuplicateHandling:
                     "history": []
                 },
                 {
-                    "name": "两次最小间隔秒",
+                    "name": "两次运行最小间隔秒",
                     "type": "text",
                     "current_value": 900,  # 15 分钟
                     "history": [],
@@ -807,10 +807,10 @@ class TestSkillConfigDuplicateHandling:
         task.refresh_from_db()
         
         # 验证模型字段被更新
-        assert task.两次最小间隔秒 == 900
+        assert task.两次运行最小间隔秒 == 900
         
-        # 验证 JSON 配置中没有 "两次最小间隔秒"（因为被提取出来保存到模型字段了）
-        assert "两次最小间隔秒" not in task.配置
+        # 验证 JSON 配置中没有 "两次运行最小间隔秒"（因为被提取出来保存到模型字段了）
+        assert "两次运行最小间隔秒" not in task.配置
         assert task.配置 == {"普通配置": "普通值"}
         
         print("✅ 保存时正确处理重名配置测试通过")
@@ -821,7 +821,7 @@ class TestSkillConfigDuplicateHandling:
         
         场景：
         - 数据库中 JSON 配置使用旧名称 "两次运行最小间隔秒数"
-        - MODEL_CONFIG_FIELDS 使用新名称 "两次最小间隔秒"
+        - MODEL_CONFIG_FIELDS 使用新名称 "两次运行最小间隔秒"
         - 验证只显示新名称的配置，旧名称被过滤掉
         """
         client = Client()
@@ -832,7 +832,7 @@ class TestSkillConfigDuplicateHandling:
             名称="旧名称任务",
             group_name=skill_name,
             激活=True,
-            两次最小间隔秒=600,  # 模型字段值
+            两次运行最小间隔秒=600,  # 模型字段值
             配置={
                 "两次运行最小间隔秒数": 300,  # 【旧名称】应该被过滤
                 "普通配置": "应该显示"
@@ -851,8 +851,8 @@ class TestSkillConfigDuplicateHandling:
         config = data['data']['config']
         keys = config['keys']
         
-        # 验证只返回一个 "两次最小间隔秒"（新名称）
-        interval_keys = [k for k in keys if k['name'] == '两次最小间隔秒']
+        # 验证只返回一个 "两次运行最小间隔秒"（新名称）
+        interval_keys = [k for k in keys if k['name'] == '两次运行最小间隔秒']
         assert len(interval_keys) == 1
         
         # 验证返回的是模型字段的值（600）
@@ -886,7 +886,7 @@ class TestSkillConfigDuplicateHandling:
             名称="旧名称回退任务",
             group_name=skill_name,
             激活=True,
-            两次最小间隔秒=0,  # 模型字段无效
+            两次运行最小间隔秒=0,  # 模型字段无效
             配置={
                 "两次运行最小间隔秒数": 550,  # 【旧名称】应该作为回退值
             },
@@ -905,7 +905,7 @@ class TestSkillConfigDuplicateHandling:
         keys = config['keys']
         
         # 验证返回的是旧名称 JSON 中的值（550）
-        interval_key = next((k for k in keys if k['name'] == '两次最小间隔秒'), None)
+        interval_key = next((k for k in keys if k['name'] == '两次运行最小间隔秒'), None)
         assert interval_key is not None
         assert interval_key['current_value'] == 550
         
@@ -934,9 +934,9 @@ class TestModelFieldFallback:
             名称="Zero回退任务",
             group_name=skill_name,
             激活=True,
-            两次最小间隔秒=0,  # 模型字段为 0
+            两次运行最小间隔秒=0,  # 模型字段为 0
             配置={
-                "两次最小间隔秒": 550,  # JSON 配置值（应该被使用）
+                "两次运行最小间隔秒": 550,  # JSON 配置值（应该被使用）
             },
             设定时间=timezone.now()
         )
@@ -953,7 +953,7 @@ class TestModelFieldFallback:
         keys = config['keys']
         
         # 验证返回的是 JSON 中的值（550），因为模型字段为 0
-        interval_key = next((k for k in keys if k['name'] == '两次最小间隔秒'), None)
+        interval_key = next((k for k in keys if k['name'] == '两次运行最小间隔秒'), None)
         assert interval_key is not None
         assert interval_key['current_value'] == 550
         
@@ -971,9 +971,9 @@ class TestModelFieldFallback:
             名称="有效值任务",
             group_name=skill_name,
             激活=True,
-            两次最小间隔秒=750,  # 模型字段有有效值
+            两次运行最小间隔秒=750,  # 模型字段有有效值
             配置={
-                "两次最小间隔秒": 250,  # JSON 配置值（应该被忽略）
+                "两次运行最小间隔秒": 250,  # JSON 配置值（应该被忽略）
             },
             设定时间=timezone.now()
         )
@@ -990,12 +990,12 @@ class TestModelFieldFallback:
         keys = config['keys']
         
         # 验证返回的是模型字段的值（750），而不是 JSON 中的值
-        interval_key = next((k for k in keys if k['name'] == '两次最小间隔秒'), None)
+        interval_key = next((k for k in keys if k['name'] == '两次运行最小间隔秒'), None)
         assert interval_key is not None
         assert interval_key['current_value'] == 750
         
         # 验证 JSON 中的同名配置被过滤掉（不会出现在 keys 中两次）
-        interval_keys = [k for k in keys if k['name'] == '两次最小间隔秒']
+        interval_keys = [k for k in keys if k['name'] == '两次运行最小间隔秒']
         assert len(interval_keys) == 1
         
         print("✅ 模型字段有效值不回退测试通过")

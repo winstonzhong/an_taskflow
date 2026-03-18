@@ -43,14 +43,14 @@ class 配置表Admin(BaseAdmin):
 class 定时任务Admin(抽象定时任务Admin):
     readonly_fields = (
         "update_time",
-        "两次最小间隔秒",
+        "两次运行最小间隔秒",
     )
     list_display = [
         "id",
         "group_name",
         "队列名称",
         "优先级",
-        "两次最小间隔秒",
+        "两次运行最小间隔秒",
         "名称",
         # "执行函数",
         # "任务描述视图",
