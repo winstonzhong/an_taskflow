@@ -89,9 +89,16 @@
                         </div>
                     </div>
                     <div class="space-y-3 text-sm">
-                        <div class="flex justify-between">
+                        <div class="flex justify-between items-center">
                             <span class="text-white/50">用户ID</span>
-                            <span class="font-mono" id="userId">--</span>
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono truncate max-w-[120px]" id="userId" title="">--</span>
+                                <button id="copyUserIdBtn" class="text-white/40 hover:text-primary transition-colors" title="复制用户ID">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-white/50">注册时间</span>
@@ -218,34 +225,17 @@
             'rejected': { label: '已拒绝', class: 'bg-white/10 text-white/60', icon: '❌' }
         };
 
-        // 加载用户信息
-        async function loadUserInfo() {
-            const userKey = getUserKey();
-            if (!userKey) {
-                renderGuestUserInfo();
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${DAIBAN_API_HOST}/daiban/client/user_info?sn=${userKey}`);
-                const result = await response.json();
-                
-                if (result.code === 2000) {
-                    renderUserInfo(result.data);
-                } else {
-                    throw new Error(result.msg || '获取用户信息失败');
-                }
-            } catch (error) {
-                console.error('获取用户信息失败:', error);
-                renderGuestUserInfo();
-            }
-        }
-
         // 渲染用户信息
         function renderUserInfo(user) {
             // 基本信息
             document.getElementById('userName').textContent = user.nickname || '用户' + user.sn.substring(0, 8);
-            document.getElementById('userId').textContent = user.sn.substring(0, 16) + '...';
+            // 用户ID显示（使用CSS截断，保存完整ID用于复制）
+            const userIdEl = document.getElementById('userId');
+            userIdEl.textContent = user.sn;
+            userIdEl.setAttribute('title', user.sn);
+            userIdEl.dataset.fullSn = user.sn;
+            // 显示复制按钮
+            document.getElementById('copyUserIdBtn').style.display = 'inline-flex';
             document.getElementById('headerMemberType').textContent = user.is_valid ? 'VIP会员' : (user.package ? '已过期' : '未开通');
             
             // 注册时间
@@ -328,7 +318,12 @@
             document.getElementById('expireTime').textContent = '--';
             document.getElementById('remainingDays').textContent = '请先登录';
             document.getElementById('planProgress').style.width = '0%';
-            document.getElementById('userId').textContent = '--';
+            const userIdEl = document.getElementById('userId');
+            userIdEl.textContent = '--';
+            userIdEl.removeAttribute('title');
+            delete userIdEl.dataset.fullSn;
+            // 隐藏复制按钮
+            document.getElementById('copyUserIdBtn').style.display = 'none';
             document.getElementById('headerMemberType').textContent = '未登录';
             
             const planStatus = document.getElementById('planStatus');
@@ -475,7 +470,7 @@
         });
 
         // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             updateNavLinks();
             // 更新内部链接
             document.querySelectorAll('.internal-link').forEach(link => {
@@ -490,9 +485,47 @@
                     link.href = getUrlWithSn(originalHref);
                 }
             });
-            loadUserInfo();
+            // 复制用户ID按钮点击事件
+            document.getElementById('copyUserIdBtn').addEventListener('click', async () => {
+                const userIdEl = document.getElementById('userId');
+                const fullSn = userIdEl.dataset.fullSn;
+                if (fullSn) {
+                    try {
+                        await navigator.clipboard.writeText(fullSn);
+                        // 显示复制成功提示
+                        const btn = document.getElementById('copyUserIdBtn');
+                        const originalHtml = btn.innerHTML;
+                        btn.innerHTML = '<svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                        setTimeout(() => {
+                            btn.innerHTML = originalHtml;
+                        }, 1500);
+                    } catch (err) {
+                        console.error('复制失败:', err);
+                        alert('复制失败，请手动复制');
+                    }
+                }
+            });
+            
+            // 个人中心页面：允许非 VIP 查看，但显示相应状态
+            const user = await checkUserAccess({
+                requireVip: false,  // 不要求 VIP
+                onSuccess: (user) => {
+                    if (user && user.is_valid) {
+                        renderUserInfo(user);
+                    } else if (user) {
+                        // 已登录但非 VIP，显示过期/未开通状态
+                        renderUserInfo(user);
+                    }
+                },
+                onGuest: () => {
+                    // 未登录，显示游客状态
+                    renderGuestUserInfo();
+                }
+            });
+            
             loadMyDemands();
         });
     </script>
+    {% include 'common/user_check.html' %}
 </body>
 </html>

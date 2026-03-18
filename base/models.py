@@ -51,6 +51,19 @@ class 定时任务(抽象定时任务):
     知识库 = models.BinaryField(null=True)
     上一次推送时间 = models.DateTimeField(null=True, blank=True)
     是否服务任务 = models.BooleanField(default=False)
+    
+    两次运行最小间隔秒数 = models.IntegerField(default=10*60)
+    
+    # 【新增】配置与模型字段的映射关系
+    # 这些配置项在前端展示为普通配置，但实际存储在模型字段中
+    # 格式: {'前端显示名称': {'field': '模型字段名', 'type': 类型}}
+    MODEL_CONFIG_FIELDS = {
+        # '间隔秒': {'field': '间隔秒', 'type': int},  # 【旧】已改用两次运行最小间隔秒数
+        '两次运行最小间隔秒数': {'field': '两次运行最小间隔秒数', 'type': int},
+        # 未来可以扩展更多字段：
+        # '优先级': {'field': '优先级', 'type': int},
+        # '激活': {'field': '激活', 'type': bool},
+    }
 
     class Meta:
         indexes = [
@@ -239,9 +252,18 @@ class 定时任务(抽象定时任务):
             # print(x)
             x['激活'] = False
             网络任务 = x.get("网络任务")
+            
+            # 【修改】如果传入了技能名称，更新 group_name 以确保一致性
+            if skill_name:
+                x['group_name'] = skill_name
+            
             qs = cls.objects.filter(网络任务=网络任务)
             if not qs.exists():
                 cls.objects.create(**x)
+            else:
+                # 【新增】如果任务已存在，更新 group_name（如果传入了技能名称）
+                if skill_name:
+                    qs.update(group_name=skill_name)
 
 
     @classmethod

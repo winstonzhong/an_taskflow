@@ -630,7 +630,7 @@
                             <div class="w-6 h-6 rounded-full ${skill.is_official ? 'bg-primary/30' : 'bg-white/10'} flex items-center justify-center text-xs overflow-hidden">
                                 ${skill.is_official ? '官' : (skill.author?.name ? skill.author.name[0] : 'U')}
                             </div>
-                            <span class="text-xs text-white/50 truncate max-w-[80px]">${skill.author?.name || '官方团队'}</span>
+                            <span class="text-xs text-white/50 truncate max-w-[80px]">${skill.author?.name || '网友上传'}</span>
                         </div>
                         <button onclick="${isDownloaded ? '' : `downloadSkill('${skill.id}', '${skill.name}', this)`}" 
                             class="px-4 py-1.5 rounded-lg text-sm ${isDownloaded ? 'bg-success/20 text-success cursor-not-allowed' : 'bg-primary text-white hover:bg-primaryDark transition-all'}"
@@ -845,31 +845,6 @@
             }
         });
 
-        // 加载用户信息
-        async function loadUserInfo() {
-            const userKey = getUserKey();
-            if (!userKey) {
-                document.getElementById('headerMemberType').textContent = '未登录';
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${DAIBAN_API_HOST}/daiban/client/user_info?sn=${userKey}`);
-                const result = await response.json();
-                
-                if (result.code === 2000) {
-                    const user = result.data;
-                    const statusText = user.is_valid ? 'VIP会员' : (user.package ? '已过期' : '未开通');
-                    document.getElementById('headerMemberType').textContent = statusText;
-                } else {
-                    document.getElementById('headerMemberType').textContent = '未登录';
-                }
-            } catch (error) {
-                console.error('获取用户信息失败:', error);
-                document.getElementById('headerMemberType').textContent = '未登录';
-            }
-        }
-
         // 初始化
         document.addEventListener('DOMContentLoaded', async () => {
             updateNavLinks();
@@ -885,12 +860,20 @@
                     link.href = getUrlWithSn(originalHref);
                 }
             });
-            loadUserInfo();
-            // 先获取已下载的技能列表
-            await fetchDownloadedSkills();
-            // 再获取技能列表
-            fetchSkills(1, false);
+            
+            // 检查用户权限（未登录或非 VIP 会自动跳转）
+            await checkUserAccess({
+                onSuccess: async (user) => {
+                    // 检查通过，继续加载页面内容
+                    loadUserInfoDisplay();
+                    // 先获取已下载的技能列表
+                    await fetchDownloadedSkills();
+                    // 再获取技能列表
+                    fetchSkills(1, false);
+                }
+            });
         });
     </script>
+    {% include 'common/user_check.html' %}
 </body>
 </html>

@@ -428,8 +428,8 @@ def get_skill_config(request):
             "message": "缺少 skill_name 参数"
         }, status=400)
     
-    # 查询 group_name 匹配的记录（不再要求配置不为空，因为配置可能只在远程 paras 中）
-    task = 定时任务.objects.filter(group_name=skill_name).first()
+    # 查询 group_name 匹配的记录（取最后一条）
+    task = 定时任务.objects.filter(group_name=skill_name).last()
     
     if task:
         # 【修改】从基本任务.config 读取全量配置（已合并远程 paras + 本地配置）
@@ -472,8 +472,46 @@ def get_skill_config(request):
                 filtered_config[key] = value
             # 其他带下划线的内置配置项 → 不展示（如 视频评论提示词_pdd_rights）
         
+        # 【修改】过滤掉与 MODEL_CONFIG_FIELDS 重名的配置项（模型字段优先）
+        model_field_names = set(定时任务.MODEL_CONFIG_FIELDS.keys())
+        filtered_config = {
+            k: v for k, v in filtered_config.items() 
+            if k not in model_field_names and not k.endswith("_历史") and not k.endswith("_描述")
+        }
+        # 保留元数据（历史和描述）
+        for k, v in full_config.items():
+            if (k.endswith("_历史") or k.endswith("_描述")) and k.replace("_历史", "").replace("_描述", "") not in model_field_names:
+                filtered_config[k] = v
+        
         # 转换为前端格式（使用 task.配置 中的元数据）
         converted_config = _convert_to_keys_format_with_merge(task.配置, filtered_config)
+        
+        # 【新增】注入模型字段配置（如 两次运行最小间隔秒数）
+        # 这些字段存储在模型字段中，但前端展示为普通配置项
+        # 注意：MODEL_CONFIG_FIELDS 中的字段会覆盖 JSON 中的同名配置
+        for config_name, field_info in 定时任务.MODEL_CONFIG_FIELDS.items():
+            field_name = field_info['field']
+            field_type = field_info.get('type', str)
+            
+            # 直接从模型字段读取值（None 也直接传递，让前端处理）
+            current_value = getattr(task, field_name, None)
+            
+            # 根据类型转换（如果不是 None）
+            if current_value is not None and field_type == int:
+                current_value = int(current_value)
+            elif current_value is not None and field_type == bool:
+                current_value = bool(current_value)
+            
+            # 添加到配置中
+            converted_config['keys'].append({
+                "id": f"key_model_{config_name}",
+                "name": config_name,
+                "description": f"{config_name}（模型字段）",
+                "type": "text" if field_type in [int, str] else "object",
+                "current_value": current_value,
+                "history": [],
+                "_is_model_field": True  # 标记为模型字段，保存时特殊处理
+            })
         
         return JsonResponse({
             "code": 2000,
@@ -561,8 +599,37 @@ def save_skill_config(request):
             "message": "技能不存在"
         }, status=404)
     
-    # 检查是否是前端传来的 keys 格式
+    # 【新增】提取模型字段配置（如 两次运行最小间隔秒数）
+    model_field_updates = {}
     if 'keys' in config:
+        # 遍历所有 key，提取模型字段
+        keys_to_keep = []
+        for key in config['keys']:
+            key_name = key.get('name', '')
+            if key_name in 定时任务.MODEL_CONFIG_FIELDS:
+                # 这是模型字段，提取值用于更新模型
+                field_info = 定时任务.MODEL_CONFIG_FIELDS[key_name]
+                field_name = field_info['field']
+                field_type = field_info.get('type', str)
+                current_value = key.get('current_value')
+                
+                # 类型转换
+                if current_value is not None:
+                    try:
+                        if field_type == int:
+                            current_value = int(current_value)
+                        elif field_type == bool:
+                            current_value = bool(current_value)
+                        model_field_updates[field_name] = current_value
+                    except (ValueError, TypeError) as e:
+                        print(f"[save_skill_config] 字段 {field_name} 值转换失败: {e}")
+            else:
+                # 普通配置项，保留在 keys 中
+                keys_to_keep.append(key)
+        
+        # 更新 config，移除模型字段
+        config['keys'] = keys_to_keep
+        
         # 获取第一条任务的原始配置（用于保留内置配置项）
         first_task = tasks.first()
         original_config = first_task.配置 if first_task else None
@@ -574,7 +641,14 @@ def save_skill_config(request):
         config_to_save = config
     
     # 【修改】批量更新所有同 group_name 的定时任务的配置字段
-    update_count = tasks.update(配置=config_to_save)
+    update_data = {"配置": config_to_save}
+    
+    # 【新增】如果有模型字段更新，一并更新
+    if model_field_updates:
+        update_data.update(model_field_updates)
+        print(f"[save_skill_config] 同时更新模型字段: {list(model_field_updates.keys())}")
+    
+    update_count = tasks.update(**update_data)
     
     # 记录日志
     print(f"[save_skill_config] 已更新 {update_count} 条任务的配置，group_name={skill_name}")
@@ -614,8 +688,8 @@ def skill_download_status(request):
             "message": "缺少 skill_name 参数"
         }, status=400)
     
-    # 查询定时任务表
-    task = 定时任务.objects.filter(group_name=skill_name).first()
+    # 查询定时任务表（取最后一条）
+    task = 定时任务.objects.filter(group_name=skill_name).last()
     
     is_downloaded = False
     if task and hasattr(task, '激活') and task.激活:

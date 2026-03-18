@@ -1,0 +1,119 @@
+{% comment %}
+共用用户检查脚本
+使用方式：在页面底部、</body> 前添加 {% include 'common/user_check.html' %}
+{% endcomment %}
+
+<script>
+    // VIP 套餐购买页面 URL
+    const VIP_PACKAGE_URL = 'https://coco.j1.sale/pages/daiban/packages.html';
+    
+    /**
+     * 检查用户登录状态和 VIP 权限
+     * @param {Object} options - 配置选项
+     * @param {boolean} options.requireVip - 是否要求 VIP（默认 true）
+     * @param {Function} options.onSuccess - 检查通过后的回调
+     * @param {Function} options.onGuest - 未登录时的回调（可选，默认跳转）
+     * @param {Function} options.onNoVip - 非 VIP 时的回调（可选，默认跳转）
+     */
+    async function checkUserAccess(options = {}) {
+        const { 
+            requireVip = true,
+            onSuccess,
+            onGuest,
+            onNoVip 
+        } = options;
+        
+        const userKey = getUserKey();
+        
+        // 未登录检查
+        if (!userKey) {
+            if (onGuest) {
+                onGuest();
+            } else {
+                window.location.href = VIP_PACKAGE_URL;
+            }
+            return false;
+        }
+        
+        try {
+            const response = await fetch(`${DAIBAN_API_HOST}/daiban/client/user_info?sn=${userKey}`);
+            const result = await response.json();
+            
+            if (result.code !== 2000) {
+                // 接口返回错误，视为未登录
+                if (onGuest) {
+                    onGuest();
+                } else {
+                    window.location.href = VIP_PACKAGE_URL;
+                }
+                return false;
+            }
+            
+            const user = result.data;
+            
+            // VIP 检查
+            if (requireVip && !user.is_valid) {
+                if (onNoVip) {
+                    onNoVip(user);
+                } else {
+                    window.location.href = VIP_PACKAGE_URL;
+                }
+                return false;
+            }
+            
+            // 检查通过
+            if (onSuccess) {
+                onSuccess(user);
+            }
+            return user;
+            
+        } catch (error) {
+            console.error('获取用户信息失败:', error);
+            // 网络错误等，默认跳转
+            window.location.href = VIP_PACKAGE_URL;
+            return false;
+        }
+    }
+    
+    /**
+     * 加载并显示用户信息（仅用于显示，不检查权限）
+     */
+    async function loadUserInfoDisplay() {
+        const userKey = getUserKey();
+        if (!userKey) {
+            updateUserInfoDisplay(null);
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${DAIBAN_API_HOST}/daiban/client/user_info?sn=${userKey}`);
+            const result = await response.json();
+            
+            if (result.code === 2000) {
+                updateUserInfoDisplay(result.data);
+            } else {
+                updateUserInfoDisplay(null);
+            }
+        } catch (error) {
+            console.error('获取用户信息失败:', error);
+            updateUserInfoDisplay(null);
+        }
+    }
+    
+    /**
+     * 更新页面上的用户信息显示
+     * @param {Object} user - 用户信息，null 表示未登录
+     */
+    function updateUserInfoDisplay(user) {
+        const headerElement = document.getElementById('headerMemberType');
+        if (!headerElement) return;
+        
+        if (!user) {
+            headerElement.textContent = '未登录';
+            return;
+        }
+        
+        const statusText = user.is_valid ? 'VIP会员' : (user.package ? '已过期' : '未开通');
+        headerElement.textContent = statusText;
+    }
+</script>

@@ -1601,32 +1601,7 @@
             })
         }
 
-        // 加载用户信息
-        async function loadUserInfo() {
-            const userKey = getUserKey();
-            if (!userKey) {
-                document.getElementById('headerMemberType').textContent = '未登录';
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${DAIBAN_API_HOST}/daiban/client/user_info?sn=${userKey}`);
-                const result = await response.json();
-                
-                if (result.code === 2000) {
-                    const user = result.data;
-                    const statusText = user.is_valid ? 'VIP会员' : (user.package ? '已过期' : '未开通');
-                    document.getElementById('headerMemberType').textContent = statusText;
-                } else {
-                    document.getElementById('headerMemberType').textContent = '未登录';
-                }
-            } catch (error) {
-                console.error('获取用户信息失败:', error);
-                document.getElementById('headerMemberType').textContent = '未登录';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             updateNavLinks();
             // 更新所有内部链接
             document.querySelectorAll('.internal-link').forEach(link => {
@@ -1640,13 +1615,21 @@
                     link.href = getUrlWithSn(originalHref);
                 }
             });
-            loadUserInfo();
-            loadSkills()
-            setAllScriptsDisabled();
-            setupSkillListScroll();
+            
+            // 检查用户权限（未登录或非 VIP 会自动跳转）
+            await checkUserAccess({
+                onSuccess: (user) => {
+                    // 检查通过，继续加载页面内容
+                    loadUserInfoDisplay();
+                    loadSkills();
+                    setAllScriptsDisabled();
+                    setupSkillListScroll();
+                }
+            });
         })
 
         log('页面加载完成，点击"连接服务器"开始使用', 'info');
     </script>
+    {% include 'common/user_check.html' %}
 </body>
 </html>
