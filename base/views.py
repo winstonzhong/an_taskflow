@@ -317,7 +317,7 @@ class 用户知识库视图(APIView):
 
         obj.知识库 = file_binary_data
         obj.保存用户配置('knowledge_base_fname', uploaded_file.name)
-        obj.save()
+        obj.save(update_fields=['知识库', '配置'])
 
 
         # op_data = {
@@ -472,31 +472,85 @@ def get_skill_config(request):
                 filtered_config[key] = value
             # 其他带下划线的内置配置项 → 不展示（如 视频评论提示词_pdd_rights）
         
-        # 【修改】过滤掉与 MODEL_CONFIG_FIELDS 重名的配置项（模型字段优先）
+        # 【修改】确定哪些模型字段有有效值（非 None 且非 0）
+        # 如果模型字段值为空或 0，则从 JSON 配置中回退读取
         model_field_names = set(定时任务.MODEL_CONFIG_FIELDS.keys())
+        effective_model_fields = set()  # 有有效值的模型字段
+        model_field_fallback_values = {}  # 模型字段值无效时，从 JSON 回退的值
+        
+        # 【新增】收集所有需要过滤的名称（包括当前名称和旧名称）
+        all_names_to_filter = set()  # 所有需要过滤的名称（包括旧名称）
+        for config_name, field_info in 定时任务.MODEL_CONFIG_FIELDS.items():
+            all_names_to_filter.add(config_name)
+            # 添加旧名称（兼容老数据）
+            legacy_names = field_info.get('legacy_names', [])
+            all_names_to_filter.update(legacy_names)
+        
+        for config_name, field_info in 定时任务.MODEL_CONFIG_FIELDS.items():
+            field_name = field_info['field']
+            field_type = field_info.get('type', str)
+            model_value = getattr(task, field_name, None)
+            
+            # 判断是否为有效值：非 None 且（非数字类型或值不为 0）
+            is_effective = model_value is not None
+            if is_effective and field_type == int:
+                is_effective = model_value != 0
+            elif is_effective and field_type == bool:
+                # bool 类型：True/False 都视为有效值
+                pass
+            
+            if is_effective:
+                effective_model_fields.add(config_name)
+            else:
+                # 模型字段值无效，尝试从 JSON 配置中回退
+                # 优先使用当前名称，如果没有则尝试旧名称（兼容老数据）
+                if config_name in full_config:
+                    model_field_fallback_values[config_name] = full_config[config_name]
+                else:
+                    # 尝试旧名称
+                    for legacy_name in field_info.get('legacy_names', []):
+                        if legacy_name in full_config:
+                            model_field_fallback_values[config_name] = full_config[legacy_name]
+                            break
+        
+        # 过滤配置项：
+        # - 有有效模型值的字段：过滤掉 JSON 中的同名配置（模型字段优先）
+        # - 无有效模型值的字段：保留 JSON 中的配置（回退机制）
+        # 【修改】同时过滤掉旧名称的配置（兼容老数据）
         filtered_config = {
             k: v for k, v in filtered_config.items() 
-            if k not in model_field_names and not k.endswith("_历史") and not k.endswith("_描述")
+            if k not in all_names_to_filter and not k.endswith("_历史") and not k.endswith("_描述")
         }
-        # 保留元数据（历史和描述）
+        # 保留元数据（历史和描述）- 只保留无有效模型值的字段的元数据
         for k, v in full_config.items():
-            if (k.endswith("_历史") or k.endswith("_描述")) and k.replace("_历史", "").replace("_描述", "") not in model_field_names:
-                filtered_config[k] = v
+            if k.endswith("_历史") or k.endswith("_描述"):
+                base_name = k.replace("_历史", "").replace("_描述", "")
+                if base_name not in effective_model_fields and base_name not in all_names_to_filter:
+                    filtered_config[k] = v
         
         # 转换为前端格式（使用 task.配置 中的元数据）
         converted_config = _convert_to_keys_format_with_merge(task.配置, filtered_config)
         
-        # 【新增】注入模型字段配置（如 两次运行最小间隔秒数）
+        # 【新增】注入模型字段配置（如 两次最小间隔秒）
         # 这些字段存储在模型字段中，但前端展示为普通配置项
-        # 注意：MODEL_CONFIG_FIELDS 中的字段会覆盖 JSON 中的同名配置
+        # 注意：如果模型字段值为空/0，则从 JSON 配置中回退读取
         for config_name, field_info in 定时任务.MODEL_CONFIG_FIELDS.items():
             field_name = field_info['field']
             field_type = field_info.get('type', str)
             
-            # 直接从模型字段读取值（None 也直接传递，让前端处理）
+            # 从模型字段读取值
             current_value = getattr(task, field_name, None)
             
-            # 根据类型转换（如果不是 None）
+            # 判断是否为有效值：非 None 且（非数字类型或值不为 0）
+            is_effective = current_value is not None
+            if is_effective and field_type == int:
+                is_effective = current_value != 0
+            
+            # 如果模型字段值无效，使用之前准备的回退值（支持旧名称）
+            if not is_effective and config_name in model_field_fallback_values:
+                current_value = model_field_fallback_values[config_name]
+            
+            # 根据类型转换
             if current_value is not None and field_type == int:
                 current_value = int(current_value)
             elif current_value is not None and field_type == bool:
@@ -599,16 +653,27 @@ def save_skill_config(request):
             "message": "技能不存在"
         }, status=404)
     
-    # 【新增】提取模型字段配置（如 两次运行最小间隔秒数）
+    # 【新增】提取模型字段配置（如 两次最小间隔秒）
     model_field_updates = {}
+    
+    # 【新增】构建名称映射（包括旧名称 → 当前名称）
+    name_to_config_map = {}  # {名称: (当前配置名, field_info)}
+    for config_name, field_info in 定时任务.MODEL_CONFIG_FIELDS.items():
+        name_to_config_map[config_name] = (config_name, field_info)
+        # 添加旧名称映射
+        for legacy_name in field_info.get('legacy_names', []):
+            name_to_config_map[legacy_name] = (config_name, field_info)
+    
     if 'keys' in config:
         # 遍历所有 key，提取模型字段
         keys_to_keep = []
         for key in config['keys']:
             key_name = key.get('name', '')
-            if key_name in 定时任务.MODEL_CONFIG_FIELDS:
-                # 这是模型字段，提取值用于更新模型
-                field_info = 定时任务.MODEL_CONFIG_FIELDS[key_name]
+            
+            # 【修改】检查是否是模型字段（包括旧名称）
+            if key_name in name_to_config_map:
+                # 这是模型字段（或旧名称），提取值用于更新模型
+                current_name, field_info = name_to_config_map[key_name]
                 field_name = field_info['field']
                 field_type = field_info.get('type', str)
                 current_value = key.get('current_value')
@@ -621,6 +686,7 @@ def save_skill_config(request):
                         elif field_type == bool:
                             current_value = bool(current_value)
                         model_field_updates[field_name] = current_value
+                        print(f"[save_skill_config] 提取模型字段: {field_name} = {current_value} (来自 {key_name})")
                     except (ValueError, TypeError) as e:
                         print(f"[save_skill_config] 字段 {field_name} 值转换失败: {e}")
             else:
