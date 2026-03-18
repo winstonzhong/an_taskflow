@@ -531,7 +531,7 @@ def get_skill_config(request):
         # 转换为前端格式（使用 task.配置 中的元数据）
         converted_config = _convert_to_keys_format_with_merge(task.配置, filtered_config)
         
-        # 【新增】注入模型字段配置（如 两次运行最小间隔秒）
+        # 【新增】注入模型字段配置（如 两次运行最小间隔秒数）
         # 这些字段存储在模型字段中，但前端展示为普通配置项
         # 注意：如果模型字段值为空/0，则从 JSON 配置中回退读取
         for config_name, field_info in 定时任务.MODEL_CONFIG_FIELDS.items():
@@ -653,7 +653,7 @@ def save_skill_config(request):
             "message": "技能不存在"
         }, status=404)
     
-    # 【新增】提取模型字段配置（如 两次运行最小间隔秒）
+    # 【新增】提取模型字段配置（如 两次运行最小间隔秒数）
     model_field_updates = {}
     
     # 【新增】构建名称映射（包括旧名称 → 当前名称）
